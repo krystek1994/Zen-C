@@ -17,7 +17,7 @@ async fn fetchbool() -> bool {
     return true;
 }
 
-test "async_returns_string" {
+test "async_returns_primitives" {
     let r1 = await fetchi8();
     assert(r1 == 16, "failed to return i8");
 

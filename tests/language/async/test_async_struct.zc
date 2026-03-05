@@ -19,7 +19,7 @@ async fn fetch_struct2() -> StringOfString {
     };
 }
 
-test "async_returns_string" {
+test "async_returns_struct" {
     let result = await fetch_struct();
     assert(result.data == "Hello", "failed to return struct");
 
