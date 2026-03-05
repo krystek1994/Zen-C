@@ -24,3 +24,11 @@ test "async_returns_struct_ptr" {
     let result = await fetch_struct2();
     assert(result.str.data == "World", "failed to return struct of struct");
 }
+
+impl Drop for String {
+    fn drop(self) { free(self.data); self.data = NULL; }
+}
+
+impl Drop for StringOfString {
+    fn drop(self) { self.str.drop(); self.str = NULL; }
+}

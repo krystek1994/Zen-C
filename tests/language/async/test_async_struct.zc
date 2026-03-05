@@ -26,3 +26,7 @@ test "async_returns_struct" {
     let result2 = await fetch_struct2();
     assert(result2.str.data == "Hello", "failed to return struct of struct");
 }
+
+impl Drop for String {
+    fn drop(self) { free(self.data); self.data = NULL; }
+}
