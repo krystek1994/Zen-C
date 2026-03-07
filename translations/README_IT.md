@@ -590,7 +590,7 @@ Zen C supporta l'overloading di operatori per gli struct definiti dall'utente pe
 
 | Categoria | Operatore | Nome del Metodo |
 |:---|:---|:---|
-| **Aritmetico** | `+`, `-`, `*`, `/`, `%` | `add`, `sub`, `mul`, `div`, `rem` |
+| **Aritmetico** | `+`, `-`, `*`, `/`, `%`, `**` | `add`, `sub`, `mul`, `div`, `rem`, `pow` |
 | **Paragone** | `==`, `!=` | `eq`, `neq` |
 | | `<`, `>`, `<=`, `>=` | `lt`, `gt`, `le`, `ge` |
 | **Bitwise** | `&`, `\|`, `^` | `bitand`, `bitor`, `bitxor` |

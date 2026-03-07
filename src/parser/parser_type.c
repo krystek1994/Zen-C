@@ -821,10 +821,23 @@ Type *parse_type_formal(ParserContext *ctx, Lexer *l)
         lexer_next(l); // eat 'fn'
 
         int star_count = 0;
-        while (lexer_peek(l).type == TOK_OP && strncmp(lexer_peek(l).start, "*", 1) == 0)
+        while (lexer_peek(l).type == TOK_OP && lexer_peek(l).start[0] == '*')
         {
+            Token st = lexer_peek(l);
+            int valid = 1;
+            for (int i = 0; i < st.len; i++)
+            {
+                if (st.start[i] != '*')
+                {
+                    valid = 0;
+                }
+            }
+            if (!valid)
+            {
+                break;
+            }
             lexer_next(l);
-            star_count++;
+            star_count += st.len;
         }
 
         Type *fn_type = type_new(TYPE_FUNCTION);
@@ -881,10 +894,27 @@ Type *parse_type_formal(ParserContext *ctx, Lexer *l)
     }
 
     // Handles: T*, T**, etc.
-    while (lexer_peek(l).type == TOK_OP && *lexer_peek(l).start == '*')
+    while (lexer_peek(l).type == TOK_OP && lexer_peek(l).start[0] == '*')
     {
-        lexer_next(l); // consume '*'
-        t = type_new_ptr(t);
+        Token st = lexer_peek(l);
+        int valid = 1;
+        for (int i = 0; i < st.len; i++)
+        {
+            if (st.start[i] != '*')
+            {
+                valid = 0;
+            }
+        }
+        if (!valid)
+        {
+            break;
+        }
+
+        lexer_next(l); // consume '*' or '**'
+        for (int i = 0; i < st.len; i++)
+        {
+            t = type_new_ptr(t);
+        }
     }
 
     int *dims = NULL;

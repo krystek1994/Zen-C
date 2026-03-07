@@ -600,7 +600,7 @@ Zen C supports operator overloading for user-defined structs by implementing spe
 
 | Category | Operator | Method Name |
 |:---|:---|:---|
-| **Arithmetic** | `+`, `-`, `*`, `/`, `%` | `add`, `sub`, `mul`, `div`, `rem` |
+| **Arithmetic** | `+`, `-`, `*`, `/`, `%`, `**` | `add`, `sub`, `mul`, `div`, `rem`, `pow` |
 | **Comparison** | `==`, `!=` | `eq`, `neq` |
 | | `<`, `>`, `<=`, `>=` | `lt`, `gt`, `le`, `ge` |
 | **Bitwise** | `&`, `\|`, `^` | `bitand`, `bitor`, `bitxor` |

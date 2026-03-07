@@ -13,6 +13,7 @@ static void emit_freestanding_preamble(FILE *out)
     fputs("#include <stddef.h>\n#include <stdint.h>\n#include "
           "<stdbool.h>\n#include <stdarg.h>\n",
           out);
+    fputs("double _zc_pow(double, double) __asm__(\"pow\");\n", out);
     fputs(ZC_TCC_COMPAT_STR, out);
     fputs("typedef size_t usize;\ntypedef char* string;\n", out);
     fputs("#define U0 void\n#define I8 int8_t\n#define U8 uint8_t\n#define I16 "
@@ -56,6 +57,7 @@ void emit_preamble(ParserContext *ctx, FILE *out)
               "<stddef.h>\n#include <string.h>\n",
               out);
         fputs("#include <stdarg.h>\n#include <stdint.h>\n#include <stdbool.h>\n", out);
+        fputs("double _zc_pow(double, double) __asm__(\"pow\");\n", out);
         fputs("#include <unistd.h>\n#include <fcntl.h>\n", out); // POSIX functions
         fputs("#define ZC_SIMD(T, N) T __attribute__((vector_size(N * sizeof(T))))\n", out);
 

@@ -403,7 +403,7 @@ Precedence get_token_precedence(Token t)
     {
         if (is_token(t, "=") || is_token(t, "+=") || is_token(t, "-=") || is_token(t, "*=") ||
             is_token(t, "/=") || is_token(t, "%=") || is_token(t, "|=") || is_token(t, "&=") ||
-            is_token(t, "^=") || is_token(t, "<<=") || is_token(t, ">>="))
+            is_token(t, "^=") || is_token(t, "<<=") || is_token(t, ">>=") || is_token(t, "**="))
         {
             return PREC_ASSIGNMENT;
         }
@@ -456,6 +456,11 @@ Precedence get_token_precedence(Token t)
         if (is_token(t, "*") || is_token(t, "/") || is_token(t, "%"))
         {
             return PREC_FACTOR;
+        }
+
+        if (is_token(t, "**"))
+        {
+            return PREC_POWER;
         }
 
         if (is_token(t, "."))
@@ -3708,8 +3713,21 @@ ASTNode *parse_primary(ParserContext *ctx, Lexer *l)
                     break;
                 }
             }
-            while (lexer_peek(&cast_look).type == TOK_OP && is_token(lexer_peek(&cast_look), "*"))
+            while (lexer_peek(&cast_look).type == TOK_OP && lexer_peek(&cast_look).start[0] == '*')
             {
+                Token st = lexer_peek(&cast_look);
+                int valid = 1;
+                for (int i = 0; i < st.len; i++)
+                {
+                    if (st.start[i] != '*')
+                    {
+                        valid = 0;
+                    }
+                }
+                if (!valid)
+                {
+                    break;
+                }
                 lexer_next(&cast_look);
             }
 
@@ -3718,8 +3736,8 @@ ASTNode *parse_primary(ParserContext *ctx, Lexer *l)
                 lexer_next(&cast_look);
                 Token next = lexer_peek(&cast_look);
                 if (next.type == TOK_STRING || next.type == TOK_INT || next.type == TOK_FLOAT ||
-                    (next.type == TOK_OP &&
-                     (is_token(next, "&") || is_token(next, "*") || is_token(next, "!"))) ||
+                    (next.type == TOK_OP && (is_token(next, "&") || is_token(next, "*") ||
+                                             is_token(next, "**") || is_token(next, "!"))) ||
                     next.type == TOK_IDENT || next.type == TOK_LPAREN)
                 {
 
@@ -4341,6 +4359,10 @@ const char *get_operator_method(const char *op)
     if (strcmp(op, "%") == 0)
     {
         return "rem";
+    }
+    if (strcmp(op, "**") == 0)
+    {
+        return "pow";
     }
 
     // Comparison
@@ -5013,12 +5035,31 @@ ASTNode *parse_expr_prec(ParserContext *ctx, Lexer *l, Precedence min_prec)
         goto after_unary;
     }
 
-    if (t.type == TOK_OP &&
-        (is_token(t, "-") || is_token(t, "!") || is_token(t, "*") || is_token(t, "&") ||
-         is_token(t, "~") || is_token(t, "&&") || is_token(t, "++") || is_token(t, "--")))
+    if (t.type == TOK_OP && (is_token(t, "-") || is_token(t, "!") || is_token(t, "*") ||
+                             is_token(t, "&") || is_token(t, "~") || is_token(t, "&&") ||
+                             is_token(t, "++") || is_token(t, "--") || is_token(t, "**")))
     {
         lexer_next(l); // consume op
-        ASTNode *operand = parse_expr_prec(ctx, l, PREC_UNARY);
+
+        ASTNode *operand;
+        if (is_token(t, "**"))
+        {
+            operand = parse_expr_prec(ctx, l, PREC_UNARY);
+            ASTNode *inner_deref = ast_create(NODE_EXPR_UNARY);
+            inner_deref->token = t;
+            inner_deref->unary.op = xstrdup("*");
+            inner_deref->unary.operand = operand;
+            if (operand->type_info && operand->type_info->kind == TYPE_POINTER)
+            {
+                inner_deref->type_info = operand->type_info->inner;
+            }
+            operand = inner_deref;
+            t.len = 1;
+        }
+        else
+        {
+            operand = parse_expr_prec(ctx, l, PREC_UNARY);
+        }
 
         if (is_token(t, "&") && operand->type == NODE_EXPR_VAR)
         {
@@ -6369,18 +6410,6 @@ ASTNode *parse_expr_prec(ParserContext *ctx, Lexer *l, Precedence min_prec)
                                                            all_unmangled);
                         if (mn)
                         {
-                            // Ensure member field reflects the instantiated name (suffix only)
-                            // The instantiate returns Struct__method_int. We need method_int part?
-                            // Actually member access codegen expects .field to be unmangled or
-                            // checks lookup. But here we are resolving a specific method instance.
-
-                            // AST doesn't support generic member node well, typical approach:
-                            // Replace member node with a special "MEMBER_GENERIC" or hack the field
-                            // name. Hack: Update field name to include mangle suffix? But codegen
-                            // does "Struct__Field". If full_name is Struct__method, mn is
-                            // Struct__method_int. Codegen does: struct_name + "__" + field. So if
-                            // we set field to "method_int", codegen does Struct__method_int.
-
                             char *p = strstr(mn, "__");
                             if (p)
                             {
@@ -6388,10 +6417,8 @@ ASTNode *parse_expr_prec(ParserContext *ctx, Lexer *l, Precedence min_prec)
                                 node->member.field = xstrdup(p + 2);
                             }
 
-                            // Update Type Info
                             Type *ft = type_new(TYPE_FUNCTION);
                             ft->name = xstrdup(mn);
-                            // Look up return type from instantiated func
                             FuncSig *isig = find_func(ctx, mn);
                             if (isig)
                             {
@@ -6407,7 +6434,13 @@ ASTNode *parse_expr_prec(ParserContext *ctx, Lexer *l, Precedence min_prec)
             continue;
         }
 
-        ASTNode *rhs = parse_expr_prec(ctx, l, prec + 1);
+        int next_prec = prec + 1;
+        if (op.type == TOK_OP && (is_token(op, "**") || is_token(op, "**=")))
+        {
+            next_prec = prec;
+        }
+
+        ASTNode *rhs = parse_expr_prec(ctx, l, next_prec);
         ASTNode *bin = ast_create(NODE_EXPR_BINARY);
         bin->token = op;
         if (op.type == TOK_OP)

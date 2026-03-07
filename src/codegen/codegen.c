@@ -446,6 +446,26 @@ void codegen_expression(ParserContext *ctx, ASTNode *node, FILE *out)
                 free(t1);
             }
         }
+        else if (strcmp(node->binary.op, "**") == 0)
+        {
+            fprintf(out, "(_zc_pow((double)(");
+            codegen_expression(ctx, node->binary.left, out);
+            fprintf(out, "), (double)(");
+            codegen_expression(ctx, node->binary.right, out);
+            fprintf(out, ")))");
+        }
+        else if (strcmp(node->binary.op, "**=") == 0)
+        {
+            fprintf(out, "({ ");
+            codegen_expression(ctx, node->binary.left, out);
+            fprintf(out, " = _zc_pow((double)(");
+            codegen_expression(ctx, node->binary.left, out);
+            fprintf(out, "), (double)(");
+            codegen_expression(ctx, node->binary.right, out);
+            fprintf(out, ")); ");
+            codegen_expression(ctx, node->binary.left, out);
+            fprintf(out, "; })");
+        }
         else
         {
             fprintf(out, "(");

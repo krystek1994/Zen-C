@@ -21,6 +21,7 @@ typedef enum
     PREC_COMPARISON, ///< Comparison operators.
     PREC_TERM,       ///< Addition and subtraction.
     PREC_FACTOR,     ///< Multiplication and division.
+    PREC_POWER,      ///< Exponentiation (**).
     PREC_UNARY,      ///< Unary operators.
     PREC_CALL,       ///< Function calls.
     PREC_PRIMARY     ///< Primary expressions.

@@ -597,7 +597,7 @@ Zen C soporta la sobrecarga de operadores para structs definidos por el usuario 
 
 | Categoría | Operador | Nombre del Método |
 |:---|:---|:---|
-| **Aritméticos** | `+`, `-`, `*`, `/`, `%` | `add`, `sub`, `mul`, `div`, `rem` |
+| **Aritméticos** | `+`, `-`, `*`, `/`, `%`, `**` | `add`, `sub`, `mul`, `div`, `rem`, `pow` |
 | **Comparación** | `==`, `!=` | `eq`, `neq` |
 | | `<`, `>`, `<=`, `>=` | `lt`, `gt`, `le`, `ge` |
 | **Bitwise** | `&`, `|`, `^` | `bitand`, `bitor`, `bitxor` |
