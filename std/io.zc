@@ -121,6 +121,41 @@ fn readln() -> char* {
     return line;
 }
 
+fn _utf8_seq_len(first_byte: byte) -> usize {
+    let b = (int)first_byte;
+    if ((b & 0x80) == 0) { return 1; } // 0xxxxxxx
+    if ((b & 0xE0) == 0xC0) { return 2; } // 110xxxxx
+    if ((b & 0xF0) == 0xE0) { return 3; } // 1110xxxx
+    if ((b & 0xF8) == 0xF0) { return 4; } // 11110xxx
+    return 1; // Fallback
+}
+
+fn read_rune() -> rune {
+    let std_in = _z_get_stdin();
+    let c1 = _z_fgetc(std_in);
+    if (c1 == Z_EOF) return (rune)0;
+    
+    let first = (byte)c1;
+    let len = _utf8_seq_len(first);
+    if (len == 1) return (rune)first;
+    
+    let val: uint32_t = 0;
+    if (len == 2) {
+        val = (uint32_t)(first & 0x1F) << 6;
+        val = val | (uint32_t)((byte)_z_fgetc(std_in) & 0x3F);
+    } else if (len == 3) {
+        val = (uint32_t)(first & 0x0F) << 12;
+        val = val | ((uint32_t)((byte)_z_fgetc(std_in) & 0x3F) << 6);
+        val = val | (uint32_t)((byte)_z_fgetc(std_in) & 0x3F);
+    } else if (len == 4) {
+        val = (uint32_t)(first & 0x07) << 18;
+        val = val | ((uint32_t)((byte)_z_fgetc(std_in) & 0x3F) << 12);
+        val = val | ((uint32_t)((byte)_z_fgetc(std_in) & 0x3F) << 6);
+        val = val | (uint32_t)((byte)_z_fgetc(std_in) & 0x3F);
+    }
+    return (rune)val;
+}
+
 // Integer to string conversion
 // Returns a static buffer - NOT thread-safe, use itos_new for heap allocation
 fn itos(n: int) -> char* {
@@ -141,5 +176,31 @@ fn itos_new(n: int) -> char* {
 fn utos(n: uint) -> char* {
     static let buffer: char[32];
     sprintf((char*)buffer, "%u", n);
+    return (char*)buffer;
+}
+
+// Rune to string (UTF-8)
+fn _z_str_rune(r: rune) -> char* {
+    static let buffer: char[5];
+    let val = (uint32_t)r;
+    if (val < 0x80) {
+        buffer[0] = (char)val;
+        buffer[1] = 0;
+    } else if (val < 0x800) {
+        buffer[0] = (char)(0xC0 | (val >> 6));
+        buffer[1] = (char)(0x80 | (val & 0x3F));
+        buffer[2] = 0;
+    } else if (val < 0x10000) {
+        buffer[0] = (char)(0xE0 | (val >> 12));
+        buffer[1] = (char)(0x80 | ((val >> 6) & 0x3F));
+        buffer[2] = (char)(0x80 | (val & 0x3F));
+        buffer[3] = 0;
+    } else {
+        buffer[0] = (char)(0xF0 | (val >> 18));
+        buffer[1] = (char)(0x80 | ((val >> 12) & 0x3F));
+        buffer[2] = (char)(0x80 | ((val >> 6) & 0x3F));
+        buffer[3] = (char)(0x80 | (val & 0x3F));
+        buffer[4] = 0;
+    }
     return (char*)buffer;
 }

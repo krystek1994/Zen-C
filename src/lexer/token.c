@@ -497,15 +497,50 @@ Token lexer_next(Lexer *l)
     if (*s == '\'')
     {
         int len = 1;
-        // Handle escapes like '\n' or regular 'a'
         if (s[len] == '\\')
         {
             len++;
-            len++;
+            if ((s[len] == 'u' || s[len] == 'U') && s[len + 1] == '{')
+            {
+                len += 2;
+                while ((s[len] >= '0' && s[len] <= '9') || (s[len] >= 'a' && s[len] <= 'f') ||
+                       (s[len] >= 'A' && s[len] <= 'F'))
+                {
+                    len++;
+                }
+                if (s[len] == '}')
+                {
+                    len++;
+                }
+            }
+            else
+            {
+                len++;
+            }
         }
         else
         {
-            len++;
+            unsigned char first = (unsigned char)s[len];
+            if ((first & 0x80) == 0)
+            {
+                len++;
+            }
+            else if ((first & 0xE0) == 0xC0)
+            {
+                len += 2;
+            }
+            else if ((first & 0xF0) == 0xE0)
+            {
+                len += 3;
+            }
+            else if ((first & 0xF8) == 0xF0)
+            {
+                len += 4;
+            }
+            else
+            {
+                len++;
+            }
         }
         if (s[len] == '\'')
         {

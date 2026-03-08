@@ -43,6 +43,8 @@ struct String {
 | :--- | :--- | :--- |
 | **new** | `String::new(s: char*) -> String` | Creates a new String from a C string primitive. |
 | **from** | `String::from(s: char*) -> String` | Alias for `new`. |
+| **from_rune** | `String::from_rune(r: rune) -> String` | Creates a new String from a single `rune`. |
+| **from_runes** | `String::from_runes(runes: rune*, count: usize) -> String` | Creates a new String from an array of `runes`. |
 
 ### Modification
 
@@ -50,6 +52,9 @@ struct String {
 | :--- | :--- | :--- |
 | **append** | `append(self, other: String*)` | Appends another string to this one. |
 | **append_c** | `append_c(self, s: char*)` | Appends a C string literal. Uses value receiver. |
+| **push_rune** | `push_rune(self, r: rune)` | Appends a single Unicode code point (`rune`) to the string. |
+| **insert_rune** | `insert_rune(self, idx: usize, r: rune)` | Inserts a `rune` at the specified *character index*. |
+| **remove_rune_at** | `remove_rune_at(self, idx: usize) -> rune` | Removes and returns the `rune` at the specified *character index*. |
 | **append_c_ptr** | `append_c_ptr(ptr: String*, s: char*)` | Appends a C string literal using pointer receiver for guaranteed mutation. |
 | **add** | `add(self, other: String*) -> String` | Concatenates this string and another into a new String. |
 | **reserve** | `reserve(self, cap: usize)` | Ensures the string has at least `cap` characters of capacity. |
@@ -78,7 +83,11 @@ These methods handle UTF-8 character boundaries correctly, contrasting with the 
 | :--- | :--- | :--- |
 | **utf8_len** | `utf8_len(self) -> usize` | Returns the number of Unicode code points (characters). |
 | **utf8_at** | `utf8_at(self, idx: usize) -> String` | Returns the character at the specified *character index* as a new String. |
+| **utf8_get** | `utf8_get(self, idx: usize) -> rune` | Returns the character at the specified *character index* as a `rune`. |
 | **utf8_substr** | `utf8_substr(self, start_idx: usize, num_chars: usize) -> String` | Returns a substring based on character indices and character count. |
+| **runes** | `runes(self) -> Vec<rune>` | Returns a vector containing all Unicode code points from the string. |
+| **from_runes_vec** | `String::from_runes_vec(runes: Vec<rune>) -> String` | Creates a new String from a vector of `rune` objects. |
+| **chars** | `chars(self) -> StringCharsIter` | Returns an iterator that yields `Option<rune>` for each character. |
 
 
 ### Transformations

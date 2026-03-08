@@ -53,7 +53,15 @@ static void codegen_literal_expr(ASTNode *node, FILE *out)
     }
     else if (node->literal.type_kind == LITERAL_CHAR)
     {
-        fprintf(out, "%s", node->literal.string_val);
+        // For multi-byte characters or runes, emit the integer value
+        if (node->literal.int_val > 127)
+        {
+            fprintf(out, "%u", (unsigned int)node->literal.int_val);
+        }
+        else
+        {
+            fprintf(out, "%s", node->literal.string_val);
+        }
     }
     else if (node->literal.type_kind == LITERAL_FLOAT)
     {

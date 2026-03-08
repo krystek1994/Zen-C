@@ -1937,7 +1937,14 @@ char *process_printf_sugar(ParserContext *ctx, const char *content, int newline,
             char *inferred_type = t ? type_to_string(t) : find_symbol_type(ctx, clean_expr);
 
             int is_bool = 0;
-            if (inferred_type)
+            if (t && t->kind == TYPE_RUNE)
+            {
+                format_spec = "%s";
+                char *orig = rw_expr;
+                rw_expr = xmalloc(strlen(orig) + 32);
+                sprintf(rw_expr, "_z_str_rune(%s)", orig);
+            }
+            else if (inferred_type)
             {
                 if (strcmp(inferred_type, "bool") == 0)
                 {
@@ -1952,7 +1959,7 @@ char *process_printf_sugar(ParserContext *ctx, const char *content, int newline,
                          strcmp(inferred_type, "i8") == 0 || strcmp(inferred_type, "I8") == 0 ||
                          strcmp(inferred_type, "int8_t") == 0 ||
                          strcmp(inferred_type, "short") == 0 ||
-                         strcmp(inferred_type, "ushort") == 0 || strcmp(inferred_type, "rune") == 0)
+                         strcmp(inferred_type, "ushort") == 0)
                 {
                     format_spec = "%d";
                 }

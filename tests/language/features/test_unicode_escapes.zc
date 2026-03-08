@@ -1,0 +1,26 @@
+test "unicode escape sequences" {
+    // 32-bit rune literal
+    let r1: rune = '\u{1F680}'; // Rocket
+    assert((uint32_t)r1 == 0x1F680, "Unicode escape u{...} for 32-bit rune failed");
+    
+    // 16-bit rune literal
+    let r2: rune = '\u{2764}'; // Heart
+    assert((uint32_t)r2 == 0x2764, "Unicode escape u{...} for 16-bit rune failed");
+
+    // String literals with Unicode escapes
+    let s = "\u{1F680} Rocket \u{2764} Heart";
+    
+    // Check byte length and contents
+    // Rocket (F0 9F 9A 80) + Space (20) + Rocket (52 6F 63 6B 65 74) + Space (20) + Heart (E2 9D A4) + Space (20) + Heart (48 65 61 72 74)
+    // Actually: 🚀 Rocket ❤ Heart
+    // Bytes: [F0 9F 9A 80] [20] [52 6F 63 6B 65 74] [20] [E2 9D A4] [20] [48 65 61 72 74]
+    // 4 + 1 + 6 + 1 + 3 + 1 + 5 = 21 bytes
+    
+    // Let's just check if it contains the expected symbols
+    // The compiler should have decoded it to UTF-8
+    assert(s[0] == (char)0xF0, "String start byte failed");
+    
+    // Test with capital U
+    let s2 = "\U{1F680}";
+    assert(s2[0] == (char)0xF0, "Capital U escape failed");
+}

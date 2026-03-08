@@ -977,6 +977,86 @@ static char *escape_c_string(const char *input)
     char *p = out;
     while (*input)
     {
+        if (*input == '\\' && (input[1] == 'u' || input[1] == 'U') && input[2] == '{')
+        {
+            input += 3;
+            uint32_t val = 0;
+            while (*input && *input != '}')
+            {
+                val = (val << 4);
+                if (*input >= '0' && *input <= '9')
+                {
+                    val += *input - '0';
+                }
+                else if (*input >= 'a' && *input <= 'f')
+                {
+                    val += *input - 'a' + 10;
+                }
+                else if (*input >= 'A' && *input <= 'F')
+                {
+                    val += *input - 'A' + 10;
+                }
+                input++;
+            }
+            if (*input == '}')
+            {
+                input++;
+            }
+
+            if (val < 128)
+            {
+                char c = (char)val;
+                if (c == '\n')
+                {
+                    *p++ = '\\';
+                    *p++ = 'n';
+                }
+                else if (c == '\r')
+                {
+                    *p++ = '\\';
+                    *p++ = 'r';
+                }
+                else if (c == '\t')
+                {
+                    *p++ = '\\';
+                    *p++ = 't';
+                }
+                else if (c == '"')
+                {
+                    *p++ = '\\';
+                    *p++ = '"';
+                }
+                else if (c == '\\')
+                {
+                    *p++ = '\\';
+                    *p++ = '\\';
+                }
+                else
+                {
+                    *p++ = c;
+                }
+            }
+            else if (val < 0x800)
+            {
+                *p++ = (char)(0xC0 | (val >> 6));
+                *p++ = (char)(0x80 | (val & 0x3F));
+            }
+            else if (val < 0x10000)
+            {
+                *p++ = (char)(0xE0 | (val >> 12));
+                *p++ = (char)(0x80 | ((val >> 6) & 0x3F));
+                *p++ = (char)(0x80 | (val & 0x3F));
+            }
+            else
+            {
+                *p++ = (char)(0xF0 | (val >> 18));
+                *p++ = (char)(0x80 | ((val >> 12) & 0x3F));
+                *p++ = (char)(0x80 | ((val >> 6) & 0x3F));
+                *p++ = (char)(0x80 | (val & 0x3F));
+            }
+            continue;
+        }
+
         if (*input == '\\')
         {
             *p++ = *input++;
@@ -1049,6 +1129,17 @@ static ASTNode *create_fstring_block(ParserContext *ctx, Token parent_token, cha
     while (cur < end)
     {
         char *brace = strchr(cur, '{');
+        while (brace && brace < end)
+        {
+            if (brace > cur + 1 && (brace[-1] == 'u' || brace[-1] == 'U') && brace[-2] == '\\')
+            {
+                brace = strchr(brace + 1, '{');
+            }
+            else
+            {
+                break;
+            }
+        }
         // Check for double brace }} first
         char *dbl_close = strstr(cur, "}}");
 
@@ -1452,6 +1543,12 @@ static ASTNode *parse_string_literal(ParserContext *ctx, Token t)
     {
         if (t.start[i] == '{')
         {
+            // Ignore if part of \u{ or \U{
+            if (i >= str_offset + 2 && (t.start[i - 1] == 'u' || t.start[i - 1] == 'U') &&
+                t.start[i - 2] == '\\')
+            {
+                continue;
+            }
             has_interpolation = 1;
             break;
         }
@@ -1496,7 +1593,104 @@ static ASTNode *parse_char_literal(Token t)
     node->token = t;
     node->literal.type_kind = LITERAL_CHAR;
     node->literal.string_val = token_strdup(t);
-    node->type_info = type_new(TYPE_I8);
+
+    // Decode character value
+    uint32_t val = 0;
+    const char *s = t.start + 1; // skip '
+    if (*s == '\\')
+    {
+        s++;
+        switch (*s)
+        {
+        case 'n':
+            val = '\n';
+            break;
+        case 'r':
+            val = '\r';
+            break;
+        case 't':
+            val = '\t';
+            break;
+        case '\\':
+            val = '\\';
+            break;
+        case '\'':
+            val = '\'';
+            break;
+        case '"':
+            val = '"';
+            break;
+        case '0':
+            val = '\0';
+            break;
+        case 'u':
+        case 'U':
+        {
+            if (s[1] == '{')
+            {
+                s += 2;
+                while (*s && *s != '}' && *s != '\'')
+                {
+                    val = (val << 4);
+                    if (*s >= '0' && *s <= '9')
+                    {
+                        val += *s - '0';
+                    }
+                    else if (*s >= 'a' && *s <= 'f')
+                    {
+                        val += *s - 'a' + 10;
+                    }
+                    else if (*s >= 'A' && *s <= 'F')
+                    {
+                        val += *s - 'A' + 10;
+                    }
+                    s++;
+                }
+                node->type_info = type_new(TYPE_RUNE);
+                node->literal.int_val = val;
+                return node;
+            }
+            // Fallthrough if not {
+        }
+        default:
+            val = (unsigned char)*s;
+            break;
+        }
+        node->type_info = type_new(TYPE_I8);
+    }
+    else
+    {
+        unsigned char first = (unsigned char)*s;
+        if ((first & 0x80) == 0)
+        {
+            val = first;
+            node->type_info = type_new(TYPE_I8);
+        }
+        else if ((first & 0xE0) == 0xC0)
+        {
+            val = ((first & 0x1F) << 6) | ((unsigned char)s[1] & 0x3F);
+            node->type_info = type_new(TYPE_RUNE);
+        }
+        else if ((first & 0xF0) == 0xE0)
+        {
+            val = ((first & 0x0F) << 12) | (((unsigned char)s[1] & 0x3F) << 6) |
+                  ((unsigned char)s[2] & 0x3F);
+            node->type_info = type_new(TYPE_RUNE);
+        }
+        else if ((first & 0xF8) == 0xF0)
+        {
+            val = ((first & 0x07) << 18) | (((unsigned char)s[1] & 0x3F) << 12) |
+                  (((unsigned char)s[2] & 0x3F) << 6) | ((unsigned char)s[3] & 0x3F);
+            node->type_info = type_new(TYPE_RUNE);
+        }
+        else
+        {
+            val = first;
+            node->type_info = type_new(TYPE_I8);
+        }
+    }
+
+    node->literal.int_val = val;
     return node;
 }
 

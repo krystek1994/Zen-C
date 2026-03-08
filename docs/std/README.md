@@ -27,4 +27,5 @@
 - [String](./string.md) - Growable, heap-allocated string type.
 - [Thread (Concurrency)](./thread.md) - Multithreading and synchronization.
 - [Time](./time.md) - Time measurement and sleep.
+- [UTF-8 Utilities](./utf8.md) - Unicode code point and UTF-8 handling.
 - [Vector (Vec)](./vec.md) - A growable dynamic array.

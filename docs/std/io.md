@@ -42,3 +42,4 @@ fn main() {
 | Function | Signature | Description |
 | :--- | :--- | :--- |
 | **readln** | `readln() -> char*` | Reads a line from stdin. Returns heap-allocated string (caller must free) or `NULL` on EOF/error. |
+| **read_rune** | `read_rune() -> rune` | Reads a single UTF-8 character from stdin and returns it as a `rune`. Returns 0 on EOF. |
