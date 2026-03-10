@@ -2,6 +2,8 @@ import "./core.zc"
 import "./vec.zc"
 import "./option.zc"
 
+extern fn strcasecmp(s1: const char*, s2: const char*) -> int;
+
 struct String {
     vec: Vec<char>;
 }
@@ -165,9 +167,46 @@ impl String {
         return String { vec: Vec<char> { data: d, len: l, cap: c } };
     }
 
+    fn add_assign(self, other: String*) {
+        self.append(other);
+    }
+
     fn eq(self, other: String*) -> bool {
         let zero: c_int = 0;
         return strcmp(self.c_str(), (*other).c_str()) == zero;
+    }
+
+    fn neq(self, other: String*) -> bool {
+        return !self.eq(other);
+    }
+
+    fn compare(self, other: String*) -> int {
+        return strcmp(self.c_str(), (*other).c_str());
+    }
+
+    fn lt(self, other: String*) -> bool {
+        return self.compare(other) < 0;
+    }
+
+    fn gt(self, other: String*) -> bool {
+        return self.compare(other) > 0;
+    }
+
+    fn le(self, other: String*) -> bool {
+        return self.compare(other) <= 0;
+    }
+
+    fn ge(self, other: String*) -> bool {
+        return self.compare(other) >= 0;
+    }
+
+    fn compare_ignore_case(self, other: String*) -> int {
+        return strcasecmp(self.c_str(), (*other).c_str());
+    }
+
+    fn eq_ignore_case(self, other: String*) -> bool {
+        let zero: int = 0;
+        return self.compare_ignore_case(other) == zero;
     }
 
     fn eq_str(self, s: char*) -> bool {

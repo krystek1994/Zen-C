@@ -9,12 +9,9 @@ import "std/string.zc"
 
 fn main() {
     let s = String::from("Hello");
-    // Ensure memory is freed
-    defer { s.free(); }
 
     // Append requires a pointer to another String
     let part = String::from(" World");
-    defer { part.free(); }
     
     s.append(&part);
     
@@ -107,6 +104,26 @@ These methods handle UTF-8 character boundaries correctly, contrasting with the 
 | Method | Signature | Description |
 | :--- | :--- | :--- |
 | **eq** | `eq(self, other: String*) -> bool` | Returns true if the strings are equal content-wise. |
+| **neq** | `neq(self, other: String*) -> bool` | Returns true if the strings are NOT equal content-wise. |
+| **compare** | `compare(self, other: String*) -> int` | Returns < 0 if self < other, 0 if equal, > 0 if self > other (lexical). |
+| **compare_ignore_case** | `compare_ignore_case(self, other: String*) -> int` | Lexical comparison ignoring case (A == a). |
+| **eq_ignore_case** | `eq_ignore_case(self, other: String*) -> bool` | Returns true if strings are equal ignoring case. |
+
+### Operators
+
+Zen-C supports operator overloading. `String` implements the following:
+
+| Operator | Method | Description |
+| :--- | :--- | :--- |
+| `+` | **add** | `s1 + &s2`. Concatenates `s1` and `s2`, returning a new `String`. |
+| `+=` | **add_assign** | `s1 += &s2`. Appends `s2` dynamically to `s1` in place. |
+| `==` | **eq** | `s1 == &s2`. Performs a structural string-equality check. |
+| `!=` | **neq** | `s1 != &s2`. Performs a structural string-inequality check. |
+| `<` | **lt** | `s1 < &s2`. True if `s1` is lexically less than `s2`. |
+| `>` | **gt** | `s1 > &s2`. True if `s1` is lexically greater than `s2`. |
+| `<=` | **le** | `s1 <= &s2`. True if `s1` is lexically less than or equal to `s2`. |
+| `>=` | **ge** | `s1 >= &s2`. True if `s1` is lexically greater than or equal to `s2`. |
+| `{}` | **to_string** | Automatically embeds the string contents during `printf` and `println` block formatting. |
 
 ### Memory Management
 
