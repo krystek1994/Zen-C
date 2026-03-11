@@ -1,0 +1,10 @@
+struct Foo {}
+impl Foo {
+    fn bar(self) {
+        println "self is valid here";
+    }
+}
+fn main() {
+    let f = Foo {};
+    f.bar();
+}

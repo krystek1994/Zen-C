@@ -4204,6 +4204,7 @@ char *parse_and_convert_args(ParserContext *ctx, Lexer *l, char ***defaults_out,
                 {
                     zpanic_at(lexer_peek(l), "Expected arg name");
                 }
+                check_identifier(ctx, param_tok);
                 char *name = token_strdup(param_tok);
                 names[count] = name; // Store name
                 if (lexer_next(l).type != TOK_COLON)
@@ -4599,4 +4600,69 @@ const char *normalize_type_name(const char *name)
     }
 
     return name;
+}
+
+int is_reserved_keyword(Token t)
+{
+    // Lexer-level keywords
+    switch (t.type)
+    {
+    case TOK_TEST:
+    case TOK_ASSERT:
+    case TOK_SIZEOF:
+    case TOK_DEF:
+    case TOK_DEFER:
+    case TOK_AUTOFREE:
+    case TOK_USE:
+    case TOK_TRAIT:
+    case TOK_IMPL:
+    case TOK_AND:
+    case TOK_OR:
+    case TOK_FOR:
+    case TOK_COMPTIME:
+    case TOK_UNION:
+    case TOK_ASM:
+    case TOK_VOLATILE:
+    case TOK_ASYNC:
+    case TOK_AWAIT:
+    case TOK_ALIAS:
+    case TOK_OPAQUE:
+        return 1;
+    default:
+        break;
+    }
+
+    if (t.type == TOK_IDENT)
+    {
+        static const char *pseudo_keywords[] = {
+            "let",   "var",      "static", "const",  "return", "if",    "else",   "while",
+            "break", "continue", "loop",   "repeat", "unless", "guard", "launch", "do",
+            "goto",  "plugin",   "fn",     "struct", "enum",   "self",  NULL};
+
+        for (int i = 0; pseudo_keywords[i] != NULL; i++)
+        {
+            if (t.len == (int)strlen(pseudo_keywords[i]) &&
+                strncmp(t.start, pseudo_keywords[i], t.len) == 0)
+            {
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+void check_identifier(ParserContext *ctx, Token t)
+{
+    (void)ctx;
+    if (is_reserved_keyword(t))
+    {
+        char buf[256];
+        char name[64];
+        int len = t.len < 63 ? t.len : 63;
+        strncpy(name, t.start, len);
+        name[len] = 0;
+        snprintf(buf, sizeof(buf), "Cannot use reserved keyword '%s' as an identifier", name);
+        zpanic_at(t, buf);
+    }
 }

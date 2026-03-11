@@ -1,0 +1,4 @@
+// EXPECT: FAIL
+fn main() {
+    let self = 10;
+}

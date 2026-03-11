@@ -1070,6 +1070,16 @@ ASTNode *parse_comptime(ParserContext *ctx, Lexer *l);
 char *patch_self_args(const char *args, const char *struct_name);
 
 /**
+ * @brief Checks if a token is a reserved keyword.
+ */
+int is_reserved_keyword(Token t);
+
+/**
+ * @brief Checks if an identifier is valid (not a keyword).
+ */
+void check_identifier(ParserContext *ctx, Token t);
+
+/**
  * @brief Main loop to parse top-level nodes in a file.
  */
 ASTNode *parse_program_nodes(ParserContext *ctx, Lexer *l);

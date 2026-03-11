@@ -16,8 +16,9 @@
 
 ASTNode *parse_function(ParserContext *ctx, Lexer *l, int is_async)
 {
-    lexer_next(l); // eat 'fn'
+    lexer_next(l);
     Token name_tok = lexer_next(l);
+    check_identifier(ctx, name_tok);
     char *name = token_strdup(name_tok);
 
     if (is_async)
@@ -34,7 +35,7 @@ ASTNode *parse_function(ParserContext *ctx, Lexer *l, int is_async)
     char *gen_param = NULL;
     if (lexer_peek(l).type == TOK_LANGLE)
     {
-        lexer_next(l); // eat <
+        lexer_next(l);
 
         char buf[1024];
         buf[0] = 0;
@@ -347,6 +348,7 @@ ASTNode *parse_var_decl(ParserContext *ctx, Lexer *l)
         while (1)
         {
             Token t = lexer_next(l);
+            check_identifier(ctx, t);
             char *nm = token_strdup(t);
             names[count] = nm;
             types[count] = NULL;
@@ -398,6 +400,7 @@ ASTNode *parse_var_decl(ParserContext *ctx, Lexer *l)
 
     // Normal Declaration OR Named Struct Destructuring
     Token name_tok = lexer_next(l);
+    check_identifier(ctx, name_tok);
     char *name = token_strdup(name_tok);
 
     // Check for Struct Destructuring: var Point { x, y }
@@ -412,6 +415,7 @@ ASTNode *parse_var_decl(ParserContext *ctx, Lexer *l)
         {
             // Parse field:name or just name
             Token t = lexer_next(l);
+            check_identifier(ctx, t);
             char *ident = token_strdup(t);
 
             if (lexer_peek(l).type == TOK_COLON)
@@ -419,6 +423,7 @@ ASTNode *parse_var_decl(ParserContext *ctx, Lexer *l)
                 // field: var_name
                 lexer_next(l); // eat :
                 Token v = lexer_next(l);
+                check_identifier(ctx, v);
                 fields[count] = ident;
                 names[count] = token_strdup(v);
             }
@@ -469,6 +474,7 @@ ASTNode *parse_var_decl(ParserContext *ctx, Lexer *l)
     {
         lexer_next(l); // eat (
         Token val_tok = lexer_next(l);
+        check_identifier(ctx, val_tok);
         char *val_name = token_strdup(val_tok);
 
         if (lexer_next(l).type != TOK_RPAREN)

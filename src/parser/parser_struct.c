@@ -125,6 +125,7 @@ ASTNode *parse_trait(ParserContext *ctx, Lexer *l)
 {
     lexer_next(l); // eat trait
     Token n = lexer_next(l);
+    check_identifier(ctx, n);
     if (n.type != TOK_IDENT)
     {
         zpanic_at(n, "Expected trait name");
@@ -143,6 +144,7 @@ ASTNode *parse_trait(ParserContext *ctx, Lexer *l)
         while (1)
         {
             Token p = lexer_next(l);
+            check_identifier(ctx, p);
             if (p.type != TOK_IDENT)
             {
                 zpanic_at(p, "Expected generic parameter name");
@@ -198,6 +200,7 @@ ASTNode *parse_trait(ParserContext *ctx, Lexer *l)
         }
 
         Token mn = lexer_next(l);
+        check_identifier(ctx, mn);
         char *mname = xmalloc(mn.len + 1);
         strncpy(mname, mn.start, mn.len);
         mname[mn.len] = 0;
@@ -854,6 +857,7 @@ ASTNode *parse_struct(ParserContext *ctx, Lexer *l, int is_union, int is_opaque)
 
     lexer_next(l); // eat struct or union
     Token n = lexer_next(l);
+    check_identifier(ctx, n);
     char *name = token_strdup(n);
 
     // Generic Params <T> or <K, V>
@@ -865,6 +869,7 @@ ASTNode *parse_struct(ParserContext *ctx, Lexer *l, int is_union, int is_opaque)
         while (1)
         {
             Token g = lexer_next(l);
+            check_identifier(ctx, g);
             gps = realloc(gps, sizeof(char *) * (gp_count + 1));
             gps[gp_count++] = token_strdup(g);
 
@@ -943,6 +948,7 @@ ASTNode *parse_struct(ParserContext *ctx, Lexer *l, int is_union, int is_opaque)
             {
                 // Named use -> Composition (Add field, don't flatten)
                 Token field_name = lexer_next(l);
+                check_identifier(ctx, field_name);
                 lexer_next(l); // eat :
                 Type *ft = parse_type_formal(ctx, l);
                 char *field_type_str = type_to_c_string(ft);
@@ -1012,14 +1018,6 @@ ASTNode *parse_struct(ParserContext *ctx, Lexer *l, int is_union, int is_opaque)
                     f = f->next;
                 }
             }
-            else
-            {
-                // If definition not found (e.g. user struct defined later), we can't
-                // embed fields yet. Compiler limitation: 'use' requires struct to be
-                // defined before. Fallback: Emit a placeholder field so compilation
-                // doesn't crash, but layout will be wrong. printf("Warning: Could not
-                // find struct '%s' for embedding.\n", use_name);
-            }
             free(use_name);
             continue;
         }
@@ -1027,6 +1025,7 @@ ASTNode *parse_struct(ParserContext *ctx, Lexer *l, int is_union, int is_opaque)
         if (t.type == TOK_IDENT)
         {
             Token f_name = lexer_next(l);
+            check_identifier(ctx, f_name);
             expect(l, TOK_COLON, "Expected :");
             Type *ft = parse_type_formal(ctx, l);
             char *f_type = type_to_c_string(ft);
@@ -1146,13 +1145,14 @@ ASTNode *parse_enum(ParserContext *ctx, Lexer *l)
 {
     lexer_next(l);
     Token n = lexer_next(l);
+    check_identifier(ctx, n);
 
-    // 1. Check for Generic <T>
     char *gp = NULL;
     if (lexer_peek(l).type == TOK_LANGLE)
     {
         lexer_next(l); // eat <
         Token g = lexer_next(l);
+        check_identifier(ctx, g);
         gp = token_strdup(g);
         lexer_next(l); // eat >
         register_generic(ctx, gp);
@@ -1182,9 +1182,9 @@ ASTNode *parse_enum(ParserContext *ctx, Lexer *l)
         if (t.type == TOK_IDENT)
         {
             Token vt = lexer_next(l);
+            check_identifier(ctx, vt);
             char *vname = token_strdup(vt);
 
-            // 2. Parse Payload Type (Ok(int))
             Type *payload = NULL;
             if (lexer_peek(l).type == TOK_LPAREN)
             {
