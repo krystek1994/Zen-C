@@ -143,6 +143,30 @@ void move_state_merge(MoveState *target, MoveState *a, MoveState *b)
     }
 }
 
+void move_state_merge_into(MoveState **target, MoveState *src)
+{
+    if (!src)
+    {
+        return;
+    }
+
+    if (!*target)
+    {
+        *target = move_state_clone(src);
+        return;
+    }
+
+    MoveEntry *e = src->entries;
+    while (e)
+    {
+        if (e->status == MOVE_STATE_MOVED)
+        {
+            mark_moved_in_state(*target, e->symbol_name, e->moved_at);
+        }
+        e = e->next;
+    }
+}
+
 int is_type_copy(ParserContext *ctx, Type *t)
 {
     if (!t)
@@ -178,11 +202,14 @@ int is_type_copy(ParserContext *ctx, Type *t)
         {
             return 1;
         }
-        if (!find_struct_def(ctx, t->name) && !check_impl(ctx, "Drop", t->name))
+        if (check_impl(ctx, "Drop", t->name))
         {
-            return 1;
+            return 0;
         }
-        return 0;
+        // Structs without Drop are Copy by default (value types).
+        // A more thorough check would analyze fields recursively,
+        // but for now this heuristic is correct for the common cases.
+        return 1;
 
     case TYPE_ARRAY:
         return is_type_copy(ctx, t->inner);
@@ -203,10 +230,6 @@ static void tc_error_with_hints(TypeChecker *tc, Token t, const char *msg, const
 {
     if (tc)
     {
-        if (tc->move_checks_only)
-        {
-            return;
-        }
         zerror_with_hints(t, msg, hints);
         tc->error_count++;
     }
@@ -241,6 +264,23 @@ void check_use_validity(TypeChecker *tc, ASTNode *var_node, ZenSymbol *sym)
 
     if (status == MOVE_STATE_MOVED || status == MOVE_STATE_MAYBE_MOVED)
     {
+        // Skip compiler-generated nodes with no source location (e.g. println interpolation)
+        if (var_node->token.line == 0)
+        {
+            return;
+        }
+
+        // Suppress duplicate errors in pass 2 if it was already moved *before* the loop started.
+        // We only care about new moves inside the loop on pass 2.
+        if (tc && tc->in_loop_pass2 && tc->loop_start_state)
+        {
+            MoveStatus start_status = get_move_status(tc->loop_start_state, sym->name);
+            if (start_status == MOVE_STATE_MOVED || start_status == MOVE_STATE_MAYBE_MOVED)
+            {
+                return;
+            }
+        }
+
         char msg[256];
         snprintf(msg, 255, "Use of moved value '%s'", sym->name);
 

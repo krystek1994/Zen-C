@@ -1170,6 +1170,256 @@ static void check_struct_init(TypeChecker *tc, ASTNode *node)
     node->type_info = def->type_info;
 }
 
+static void check_loop_passes(TypeChecker *tc, ASTNode *node)
+{
+    MoveState *prev_break = tc->loop_break_state;
+    MoveState *prev_cont = tc->loop_continue_state;
+    tc->loop_break_state = NULL;
+    tc->loop_continue_state = NULL;
+
+    MoveState *initial_state = tc->pctx->move_state;
+    MoveState *loop_start = initial_state ? move_state_clone(initial_state) : NULL;
+    MoveState *outer_start_state = tc->loop_start_state;
+    tc->loop_start_state = loop_start;
+
+    int outer_in_pass2 = tc->in_loop_pass2;
+    tc->in_loop_pass2 = 0;
+
+    int initial_unreachable = tc->is_unreachable;
+
+    // Pass 1: standard typecheck and move check
+    tc->is_unreachable = 0; // The loop start is assumed reachable if we got here
+
+    switch (node->type)
+    {
+    case NODE_WHILE:
+        check_node(tc, node->while_stmt.condition);
+        if (node->while_stmt.condition && node->while_stmt.condition->type_info)
+        {
+            Type *cond_type = resolve_alias(node->while_stmt.condition->type_info);
+            if (cond_type->kind != TYPE_BOOL && !is_integer_type(cond_type) &&
+                cond_type->kind != TYPE_POINTER && cond_type->kind != TYPE_STRING)
+            {
+                const char *hints[] = {"While conditions must be boolean, integer, or pointer",
+                                       NULL};
+                tc_error_with_hints(tc, node->while_stmt.condition->token,
+                                    "Condition must be a truthy type", hints);
+            }
+        }
+        check_node(tc, node->while_stmt.body);
+        break;
+
+    case NODE_FOR:
+        tc_enter_scope(tc); // For loop init variable is scoped
+        check_node(tc, node->for_stmt.init);
+
+        // Loop start is conceptually here for FOR
+        if (loop_start)
+        {
+            move_state_free(loop_start);
+        }
+        loop_start = tc->pctx->move_state ? move_state_clone(tc->pctx->move_state) : NULL;
+        tc->loop_start_state = loop_start;
+
+        check_node(tc, node->for_stmt.condition);
+        if (node->for_stmt.condition && node->for_stmt.condition->type_info)
+        {
+            Type *cond_type = resolve_alias(node->for_stmt.condition->type_info);
+            if (cond_type->kind != TYPE_BOOL && !is_integer_type(cond_type) &&
+                cond_type->kind != TYPE_POINTER && cond_type->kind != TYPE_STRING)
+            {
+                const char *hints[] = {"For conditions must be boolean, integer, or pointer", NULL};
+                tc_error_with_hints(tc, node->for_stmt.condition->token,
+                                    "Condition must be a truthy type", hints);
+            }
+        }
+        check_node(tc, node->for_stmt.body);
+        check_node(tc, node->for_stmt.step); // step happens after body
+        break;
+
+    case NODE_FOR_RANGE:
+        check_node(tc, node->for_range.start);
+        check_node(tc, node->for_range.end);
+
+        // Loop start conceptually here
+        if (loop_start)
+        {
+            move_state_free(loop_start);
+        }
+        loop_start = tc->pctx->move_state ? move_state_clone(tc->pctx->move_state) : NULL;
+        tc->loop_start_state = loop_start;
+
+        check_node(tc, node->for_range.body);
+        break;
+
+    case NODE_LOOP:
+        check_node(tc, node->loop_stmt.body);
+        break;
+
+    case NODE_REPEAT:
+        check_node(tc, node->repeat_stmt.body);
+        break;
+
+    case NODE_DO_WHILE:
+        check_node(tc, node->do_while_stmt.body);
+        check_node(tc, node->do_while_stmt.condition);
+        if (node->do_while_stmt.condition && node->do_while_stmt.condition->type_info)
+        {
+            Type *cond_type = resolve_alias(node->do_while_stmt.condition->type_info);
+            if (cond_type->kind != TYPE_BOOL && !is_integer_type(cond_type) &&
+                cond_type->kind != TYPE_POINTER && cond_type->kind != TYPE_STRING)
+            {
+                const char *hints[] = {"Do-while conditions must be boolean, integer, or pointer",
+                                       NULL};
+                tc_error_with_hints(tc, node->do_while_stmt.condition->token,
+                                    "Condition must be a truthy type", hints);
+            }
+        }
+        break;
+
+    default:
+        break;
+    }
+
+    // Determine next iter state based on continue and fallthrough
+    MoveState *fallthrough_state = tc->pctx->move_state;
+    int fallthrough_unreachable = tc->is_unreachable;
+
+    MoveState *next_iter_state = NULL;
+    if (!fallthrough_unreachable && fallthrough_state)
+    {
+        move_state_merge_into(&next_iter_state, fallthrough_state);
+    }
+    if (tc->loop_continue_state)
+    {
+        move_state_merge_into(&next_iter_state, tc->loop_continue_state);
+    }
+
+    // Pass 2: Re-run with next_iter_state to catch use-after-move across iterations
+    if (next_iter_state)
+    {
+        int prev_move_checks_only = tc->move_checks_only;
+        tc->move_checks_only = 1; // suppress type errors
+        tc->in_loop_pass2 = 1;
+
+        tc->pctx->move_state = move_state_clone(next_iter_state);
+        tc->is_unreachable = 0;
+
+        tc->loop_break_state = NULL;
+        tc->loop_continue_state = NULL;
+
+        // Re-run appropriate parts
+        switch (node->type)
+        {
+        case NODE_WHILE:
+            check_node(tc, node->while_stmt.condition);
+            check_node(tc, node->while_stmt.body);
+            break;
+        case NODE_FOR:
+            check_node(tc, node->for_stmt.condition);
+            check_node(tc, node->for_stmt.body);
+            check_node(tc, node->for_stmt.step);
+            break;
+        case NODE_FOR_RANGE:
+            check_node(tc, node->for_range.body);
+            break;
+        case NODE_LOOP:
+            check_node(tc, node->loop_stmt.body);
+            break;
+        case NODE_REPEAT:
+            check_node(tc, node->repeat_stmt.body);
+            break;
+        case NODE_DO_WHILE:
+            check_node(tc, node->do_while_stmt.body);
+            check_node(tc, node->do_while_stmt.condition);
+            break;
+        default:
+            break;
+        }
+
+        if (tc->pctx->move_state)
+        {
+            move_state_free(tc->pctx->move_state);
+        }
+        if (tc->loop_break_state)
+        {
+            move_state_free(tc->loop_break_state);
+        }
+        if (tc->loop_continue_state)
+        {
+            move_state_free(tc->loop_continue_state);
+        }
+
+        tc->move_checks_only = prev_move_checks_only;
+    }
+
+    // Compute final move state exiting the loop
+    MoveState *final_state = NULL;
+    // Loops can exit via condition falsification (next_iter_state) or breaks
+    if (next_iter_state)
+    {
+        // Assume infinite loops (like NODE_LOOP) don't exit naturally unless broken,
+        // but for safety we'll merge next_iter_state for all, treating condition as maybe false.
+        if (node->type != NODE_LOOP)
+        {
+            move_state_merge_into(&final_state, next_iter_state);
+        }
+    }
+    if (tc->loop_break_state)
+    {
+        move_state_merge_into(&final_state, tc->loop_break_state);
+    }
+
+    // Cleanup Pass 1 states
+    if (tc->loop_break_state)
+    {
+        move_state_free(tc->loop_break_state);
+    }
+    if (tc->loop_continue_state)
+    {
+        move_state_free(tc->loop_continue_state);
+    }
+    if (next_iter_state)
+    {
+        move_state_free(next_iter_state);
+    }
+    if (loop_start)
+    {
+        move_state_free(loop_start);
+    }
+
+    // Restore outer context
+    if (node->type == NODE_FOR)
+    {
+        tc_exit_scope(tc);
+    }
+
+    // If the loop is an infinite loop and has no breaks, it is unconditionally unreachable after.
+    if ((node->type == NODE_LOOP || node->type == NODE_REPEAT) && !final_state)
+    {
+        tc->is_unreachable = 1;
+    }
+    else if (final_state)
+    {
+        tc->is_unreachable = 0;
+    }
+    else
+    {
+        tc->is_unreachable = initial_unreachable;
+    }
+
+    if (tc->pctx->move_state)
+    {
+        move_state_free(tc->pctx->move_state);
+    }
+    tc->pctx->move_state = final_state ? final_state : initial_state;
+
+    tc->loop_break_state = prev_break;
+    tc->loop_continue_state = prev_cont;
+    tc->loop_start_state = outer_start_state;
+    tc->in_loop_pass2 = outer_in_pass2;
+}
+
 static void check_node(TypeChecker *tc, ASTNode *node)
 {
     if (!node)
@@ -1229,6 +1479,7 @@ static void check_node(TypeChecker *tc, ASTNode *node)
                 tc_error_with_hints(tc, node->token, msg, hints);
             }
         }
+        tc->is_unreachable = 1;
         break;
 
     // Control flow with nested nodes.
@@ -1248,6 +1499,7 @@ static void check_node(TypeChecker *tc, ASTNode *node)
         }
 
         MoveState *initial_state = tc->pctx->move_state;
+        int initial_unreachable = tc->is_unreachable;
 
         if (initial_state)
         {
@@ -1255,8 +1507,12 @@ static void check_node(TypeChecker *tc, ASTNode *node)
         }
         check_node(tc, node->if_stmt.then_body);
         MoveState *after_then = tc->pctx->move_state;
+        int then_unreachable = tc->is_unreachable;
 
         MoveState *after_else = NULL;
+        int else_unreachable = initial_unreachable;
+        tc->is_unreachable = initial_unreachable; // Reset for else branch
+
         if (node->if_stmt.else_body)
         {
             if (initial_state)
@@ -1265,13 +1521,19 @@ static void check_node(TypeChecker *tc, ASTNode *node)
             }
             check_node(tc, node->if_stmt.else_body);
             after_else = tc->pctx->move_state;
+            else_unreachable = tc->is_unreachable;
         }
 
         tc->pctx->move_state = initial_state;
 
         if (initial_state)
         {
-            move_state_merge(initial_state, after_then, after_else);
+            MoveState *merge_a = then_unreachable ? NULL : after_then;
+            MoveState *merge_b =
+                else_unreachable ? NULL : (node->if_stmt.else_body ? after_else : initial_state);
+
+            // Only merge reachable paths
+            move_state_merge(initial_state, merge_a, merge_b);
 
             if (after_then)
             {
@@ -1282,19 +1544,46 @@ static void check_node(TypeChecker *tc, ASTNode *node)
                 move_state_free(after_else);
             }
         }
+
+        tc->is_unreachable = then_unreachable && else_unreachable;
         break;
     case NODE_MATCH:
         check_node(tc, node->match_stmt.expr);
         // Visit each match case
         {
+            MoveState *match_initial_state = tc->pctx->move_state;
+            MoveState *merged_state = NULL;
+            int match_initial_unreachable = tc->is_unreachable;
+            int all_unreachable = 1;
+
             ASTNode *mcase = node->match_stmt.cases;
             int has_default = 0;
             while (mcase)
             {
                 if (mcase->type == NODE_MATCH_CASE)
                 {
+                    if (match_initial_state)
+                    {
+                        tc->pctx->move_state = move_state_clone(match_initial_state);
+                    }
+                    tc->is_unreachable = match_initial_unreachable;
+
                     check_node(tc, mcase->match_case.body);
-                    // Check for default case
+
+                    if (!tc->is_unreachable)
+                    {
+                        all_unreachable = 0;
+                        if (tc->pctx->move_state)
+                        {
+                            move_state_merge_into(&merged_state, tc->pctx->move_state);
+                        }
+                    }
+
+                    if (tc->pctx->move_state && tc->pctx->move_state != match_initial_state)
+                    {
+                        move_state_free(tc->pctx->move_state);
+                    }
+
                     if (mcase->match_case.is_default)
                     {
                         has_default = 1;
@@ -1302,51 +1591,34 @@ static void check_node(TypeChecker *tc, ASTNode *node)
                 }
                 mcase = mcase->next;
             }
-            // Warn if no default case
+
             if (!has_default)
             {
+                all_unreachable = 0;
+                if (match_initial_state)
+                {
+                    move_state_merge_into(&merged_state, match_initial_state);
+                }
                 const char *hints[] = {"Add a default '_' case to handle all possibilities", NULL};
                 tc_error_with_hints(tc, node->token,
                                     "Match may not be exhaustive (no default case)", hints);
             }
+
+            if (match_initial_state && merged_state)
+            {
+                tc->pctx->move_state = merged_state;
+            }
+            else if (!merged_state)
+            {
+                tc->pctx->move_state = match_initial_state;
+            }
+
+            tc->is_unreachable = all_unreachable;
         }
         break;
     case NODE_WHILE:
-        check_node(tc, node->while_stmt.condition);
-        // Validate condition is boolean-compatible
-        if (node->while_stmt.condition && node->while_stmt.condition->type_info)
-        {
-            Type *cond_type = resolve_alias(node->while_stmt.condition->type_info);
-            if (cond_type->kind != TYPE_BOOL && !is_integer_type(cond_type) &&
-                cond_type->kind != TYPE_POINTER && cond_type->kind != TYPE_STRING)
-            {
-                const char *hints[] = {"While conditions must be boolean, integer, or pointer",
-                                       NULL};
-                tc_error_with_hints(tc, node->while_stmt.condition->token,
-                                    "Condition must be a truthy type", hints);
-            }
-        }
-        check_node(tc, node->while_stmt.body);
-        break;
     case NODE_FOR:
-        tc_enter_scope(tc); // For loop init variable is scoped
-        check_node(tc, node->for_stmt.init);
-        check_node(tc, node->for_stmt.condition);
-        // Validate condition is boolean-compatible
-        if (node->for_stmt.condition && node->for_stmt.condition->type_info)
-        {
-            Type *cond_type = resolve_alias(node->for_stmt.condition->type_info);
-            if (cond_type->kind != TYPE_BOOL && !is_integer_type(cond_type) &&
-                cond_type->kind != TYPE_POINTER && cond_type->kind != TYPE_STRING)
-            {
-                const char *hints[] = {"For conditions must be boolean, integer, or pointer", NULL};
-                tc_error_with_hints(tc, node->for_stmt.condition->token,
-                                    "Condition must be a truthy type", hints);
-            }
-        }
-        check_node(tc, node->for_stmt.step);
-        check_node(tc, node->for_stmt.body);
-        tc_exit_scope(tc);
+        check_loop_passes(tc, node);
         break;
     case NODE_EXPR_BINARY:
         check_expr_binary(tc, node);
@@ -1598,12 +1870,8 @@ static void check_node(TypeChecker *tc, ASTNode *node)
         check_struct_init(tc, node);
         break;
     case NODE_LOOP:
-        // Infinite loop - check body
-        check_node(tc, node->loop_stmt.body);
-        break;
     case NODE_REPEAT:
-        // Repeat loop - check body
-        check_node(tc, node->repeat_stmt.body);
+        check_loop_passes(tc, node);
         break;
     case NODE_TERNARY:
         check_node(tc, node->ternary.cond);
@@ -1696,10 +1964,7 @@ static void check_node(TypeChecker *tc, ASTNode *node)
         node->type_info = type_new(TYPE_I32);
         break;
     case NODE_FOR_RANGE:
-        // Check range start/end expressions
-        check_node(tc, node->for_range.start);
-        check_node(tc, node->for_range.end);
-        check_node(tc, node->for_range.body);
+        check_loop_passes(tc, node);
         break;
     case NODE_EXPR_SLICE:
         // Check slice target and indices
@@ -1714,20 +1979,21 @@ static void check_node(TypeChecker *tc, ASTNode *node)
         }
         break;
     case NODE_DO_WHILE:
-        check_node(tc, node->do_while_stmt.body);
-        check_node(tc, node->do_while_stmt.condition);
-        if (node->do_while_stmt.condition && node->do_while_stmt.condition->type_info)
+        check_loop_passes(tc, node);
+        break;
+    case NODE_BREAK:
+        if (tc->pctx->move_state)
         {
-            Type *cond_type = resolve_alias(node->do_while_stmt.condition->type_info);
-            if (cond_type->kind != TYPE_BOOL && !is_integer_type(cond_type) &&
-                cond_type->kind != TYPE_POINTER && cond_type->kind != TYPE_STRING)
-            {
-                const char *hints[] = {"Do-while conditions must be boolean, integer, or pointer",
-                                       NULL};
-                tc_error_with_hints(tc, node->do_while_stmt.condition->token,
-                                    "Condition must be a truthy type", hints);
-            }
+            move_state_merge_into(&tc->loop_break_state, tc->pctx->move_state);
         }
+        tc->is_unreachable = 1;
+        break;
+    case NODE_CONTINUE:
+        if (tc->pctx->move_state)
+        {
+            move_state_merge_into(&tc->loop_continue_state, tc->pctx->move_state);
+        }
+        tc->is_unreachable = 1;
         break;
     case NODE_GOTO:
     case NODE_LABEL:

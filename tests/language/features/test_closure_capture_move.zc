@@ -1,5 +1,10 @@
+// EXPECT: FAIL
 struct Mover {
   val: int
+}
+
+impl Drop for Mover {
+  fn drop(self) {}
 }
 
 fn consume(func: fn()) {

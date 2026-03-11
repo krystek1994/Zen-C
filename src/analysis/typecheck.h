@@ -25,6 +25,11 @@ typedef struct TypeChecker
 
     // Flow Analysis State
     struct MoveState *move_state; ///< Current state of moved variables.
+    int is_unreachable;           ///< Path ends in break/return/continue
+    struct MoveState *loop_break_state;
+    struct MoveState *loop_continue_state;
+    struct MoveState *loop_start_state;
+    int in_loop_pass2;
 
     // Configuration
     int move_checks_only; ///< If true, only report move semantics violations (no type errors).

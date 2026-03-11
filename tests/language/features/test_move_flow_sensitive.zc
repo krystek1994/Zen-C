@@ -1,7 +1,11 @@
-// Move errors are only reported with --check
+// EXPECT: FAIL
 
 struct Mover {
     val: int
+}
+
+impl Drop for Mover {
+    fn drop(self) {}
 }
 
 fn consume(m: Mover) {

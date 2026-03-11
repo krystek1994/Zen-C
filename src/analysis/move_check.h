@@ -58,6 +58,12 @@ MoveState *move_state_clone(MoveState *src);
 void move_state_merge(MoveState *target, MoveState *a, MoveState *b);
 
 /**
+ * @brief Merges a source state into a target state, initializing target if NULL.
+ * Used for merging states from multiple break/continue points.
+ */
+void move_state_merge_into(MoveState **target, MoveState *src);
+
+/**
  * @brief Frees a move state.
  */
 void move_state_free(MoveState *state);
