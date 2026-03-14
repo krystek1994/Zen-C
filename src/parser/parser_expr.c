@@ -3056,6 +3056,7 @@ ASTNode *parse_primary(ParserContext *ctx, Lexer *l)
                         ASTNode *assign = ast_create(NODE_VAR_DECL);
                         char name[16];
                         snprintf(name, sizeof(name), "_v%d", idx);
+                        assign->token = t;
                         assign->var_decl.name = xstrdup(name);
                         assign->var_decl.init_expr = val;
                         if (!head)
@@ -3090,6 +3091,7 @@ ASTNode *parse_primary(ParserContext *ctx, Lexer *l)
                         }
                         ASTNode *val = parse_expression(ctx, l);
                         ASTNode *assign = ast_create(NODE_VAR_DECL);
+                        assign->token = t;
                         assign->var_decl.name = token_strdup(fn);
                         assign->var_decl.init_expr = val;
                         if (!head)
