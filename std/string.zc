@@ -40,6 +40,10 @@ impl StringCharsIter {
         self.pos = self.pos + seq;
         return Option<rune>::Some(val);
     }
+
+    fn iterator(self) -> StringCharsIter {
+        return *self;
+    }
 }
 
 impl String {
@@ -497,6 +501,10 @@ impl String {
             i = i + seq;
         }
         return v;
+    }
+
+    fn iterator(self) -> StringCharsIter {
+        return self.chars();
     }
 
     fn chars(self) -> StringCharsIter {

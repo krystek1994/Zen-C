@@ -2129,8 +2129,40 @@ ASTNode *parse_primary(ParserContext *ctx, Lexer *l)
                 break;
             }
 
-            Token p = lexer_next(l);
-            char *pattern = token_strdup(p);
+            char pat_buf[1024] = {0};
+            Token peek;
+            while (1)
+            {
+                peek = lexer_peek(l);
+                if (peek.type == TOK_ARROW ||
+                    (peek.type == TOK_IDENT && peek.len == 2 && strncmp(peek.start, "if", 2) == 0))
+                {
+                    break;
+                }
+                if (peek.type == TOK_LPAREN && pat_buf[0] != 0)
+                {
+                    break;
+                }
+
+                Token t = lexer_next(l);
+                char *s = token_strdup(t);
+                if (t.type == TOK_COMMA)
+                {
+                    strncat(pat_buf, "|", sizeof(pat_buf) - strlen(pat_buf) - 1);
+                }
+                else
+                {
+                    strncat(pat_buf, s, sizeof(pat_buf) - strlen(pat_buf) - 1);
+                }
+                free(s);
+
+                if (peek.type == TOK_IDENT && strcmp(pat_buf, "_") == 0)
+                {
+                    break;
+                }
+            }
+
+            char *pattern = xstrdup(pat_buf);
             int is_default = (strcmp(pattern, "_") == 0);
 
             // Handle Destructuring: Ok(v) or Rect(w, h)

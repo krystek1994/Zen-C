@@ -266,6 +266,16 @@ impl JsonValue {
         return Result<JsonValue*>::Err("JSON parse error");
     }
 
+    fn parse_val(json: char*) -> Result<JsonValue> {
+        let result: JsonValue* = _json_do_parse(json);
+        if (result != NULL) {
+            let val = *result;
+            free(result); // Free the root container, keep children
+            return Result<JsonValue>::Ok(val);
+        }
+        return Result<JsonValue>::Err("JSON parse error");
+    }
+
     // ============================================
     // Type checking helpers
     // ============================================
