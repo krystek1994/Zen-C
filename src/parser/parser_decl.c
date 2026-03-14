@@ -927,6 +927,7 @@ ASTNode *parse_def(ParserContext *ctx, Lexer *l)
     }
 
     ASTNode *o = ast_create(NODE_CONST);
+    o->token = n;
     o->var_decl.name = ns;
     o->var_decl.type_str = type_str;
     o->var_decl.init_expr = i;

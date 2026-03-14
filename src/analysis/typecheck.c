@@ -1683,6 +1683,7 @@ static void check_node(TypeChecker *tc, ASTNode *node)
                     memset(&node->call, 0, sizeof(node->call));
 
                     ASTNode *callee = ast_create(NODE_EXPR_MEMBER);
+                    callee->token = node->token;
                     callee->member.target = array;
                     callee->member.field = xstrdup(method_name);
                     callee->member.is_pointer_access = is_ptr;
