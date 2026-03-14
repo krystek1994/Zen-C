@@ -2130,23 +2130,23 @@ ASTNode *parse_primary(ParserContext *ctx, Lexer *l)
             }
 
             char pat_buf[1024] = {0};
-            Token peek;
+            Token mpeek;
             while (1)
             {
-                peek = lexer_peek(l);
-                if (peek.type == TOK_ARROW ||
-                    (peek.type == TOK_IDENT && peek.len == 2 && strncmp(peek.start, "if", 2) == 0))
+                mpeek = lexer_peek(l);
+                if (mpeek.type == TOK_ARROW || (mpeek.type == TOK_IDENT && mpeek.len == 2 &&
+                                                strncmp(mpeek.start, "if", 2) == 0))
                 {
                     break;
                 }
-                if (peek.type == TOK_LPAREN && pat_buf[0] != 0)
+                if (mpeek.type == TOK_LPAREN && pat_buf[0] != 0)
                 {
                     break;
                 }
 
-                Token t = lexer_next(l);
-                char *s = token_strdup(t);
-                if (t.type == TOK_COMMA)
+                Token pt = lexer_next(l);
+                char *s = token_strdup(pt);
+                if (pt.type == TOK_COMMA)
                 {
                     strncat(pat_buf, "|", sizeof(pat_buf) - strlen(pat_buf) - 1);
                 }
@@ -2156,7 +2156,7 @@ ASTNode *parse_primary(ParserContext *ctx, Lexer *l)
                 }
                 free(s);
 
-                if (peek.type == TOK_IDENT && strcmp(pat_buf, "_") == 0)
+                if (mpeek.type == TOK_IDENT && strcmp(pat_buf, "_") == 0)
                 {
                     break;
                 }
@@ -4129,85 +4129,7 @@ ASTNode *parse_primary(ParserContext *ctx, Lexer *l)
 
         if (lexer_peek(l).type == TOK_COMMA)
         {
-            // This is a tuple literal - collect all elements and infer types
-            ASTNode **elements = xmalloc(sizeof(ASTNode *) * 16);
-            char **type_strs = xmalloc(sizeof(char *) * 16);
-            int count = 0;
-
-            // First element
-            elements[count] = expr;
-            char *t1 = infer_type(ctx, expr);
-            type_strs[count] = t1 ? t1 : xstrdup("int");
-            count++;
-
-            // Parse remaining elements
-            while (lexer_peek(l).type == TOK_COMMA)
-            {
-                lexer_next(l); // eat comma
-                ASTNode *elem = parse_expression(ctx, l);
-                elements[count] = elem;
-                char *ti = infer_type(ctx, elem);
-                type_strs[count] = ti ? ti : xstrdup("int");
-                count++;
-            }
-
-            if (lexer_next(l).type != TOK_RPAREN)
-            {
-                zpanic_at(lexer_peek(l), "Expected ) after tuple");
-            }
-
-            // Build tuple signature
-            char sig[512];
-            sig[0] = 0;
-            for (int i = 0; i < count; i++)
-            {
-                if (i > 0)
-                {
-                    strcat(sig, "__");
-                }
-                strcat(sig, type_strs[i]);
-            }
-
-            register_tuple(ctx, sig);
-
-            char tuple_name[1024];
-            sprintf(tuple_name, "Tuple_%s", sig);
-
-            node = ast_create(NODE_EXPR_STRUCT_INIT);
-            node->struct_init.struct_name = xstrdup(tuple_name);
-
-            ASTNode *head = NULL, *tail = NULL;
-            for (int i = 0; i < count; i++)
-            {
-                ASTNode *assign = ast_create(NODE_VAR_DECL);
-                char name[32];
-                snprintf(name, sizeof(name), "v%d", i);
-                assign->var_decl.name = xstrdup(name);
-                assign->var_decl.init_expr = elements[i];
-                if (!head)
-                {
-                    head = assign;
-                }
-                else
-                {
-                    tail->next = assign;
-                }
-                tail = assign;
-            }
-            node->struct_init.fields = head;
-
-            // Set type info
-            Type *tuple_type = type_new(TYPE_STRUCT);
-            tuple_type->name = xstrdup(tuple_name);
-            node->type_info = tuple_type;
-
-            // Cleanup
-            free(elements);
-            for (int i = 0; i < count; i++)
-            {
-                free(type_strs[i]);
-            }
-            free(type_strs);
+            return parse_tuple_expression(ctx, l, NULL, expr);
         }
         else
         {
@@ -7931,4 +7853,83 @@ ASTNode *parse_arrow_lambda_multi(ParserContext *ctx, Lexer *l, char **param_nam
     analyze_lambda_captures(ctx, lambda);
     exit_scope(ctx);
     return lambda;
+}
+
+ASTNode *parse_tuple_expression(ParserContext *ctx, Lexer *l, const char *type_name,
+                                ASTNode *first_elem)
+{
+    if (!first_elem)
+    {
+        lexer_next(l); // eat (
+    }
+
+    ASTNode *head = first_elem, *prev = first_elem;
+    int count = (first_elem ? 1 : 0);
+
+    // If first_elem was provided, we might be at a comma or the closing paren
+    if (first_elem && lexer_peek(l).type == TOK_COMMA)
+    {
+        lexer_next(l); // eat comma
+    }
+
+    while (lexer_peek(l).type != TOK_RPAREN)
+    {
+        ASTNode *element = parse_expression(ctx, l);
+        if (head == NULL)
+        {
+            head = element;
+        }
+        else
+        {
+            prev->next = element;
+        }
+        prev = element;
+        count++;
+
+        if (lexer_peek(l).type == TOK_COMMA)
+        {
+            lexer_next(l);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (lexer_next(l).type != TOK_RPAREN)
+    {
+        zpanic_at(lexer_peek(l), "Expected ) after tuple literal");
+    }
+
+    ASTNode *n = ast_create(NODE_EXPR_TUPLE_LITERAL);
+    n->tuple_literal.elements = head;
+    n->tuple_literal.count = count;
+
+    if (type_name)
+    {
+        n->resolved_type = xstrdup(type_name);
+    }
+    else
+    {
+        char sig[1024];
+        sig[0] = 0;
+        ASTNode *curr = head;
+        int i = 0;
+        while (curr)
+        {
+            char *it = infer_type(ctx, curr);
+            if (i > 0)
+            {
+                strcat(sig, "__");
+            }
+            strcat(sig, it ? it : "int");
+            curr = curr->next;
+            i++;
+        }
+        register_tuple(ctx, sig);
+        char tuple_name[1024];
+        sprintf(tuple_name, "Tuple_%s", sig);
+        n->resolved_type = xstrdup(tuple_name);
+    }
+    return n;
 }

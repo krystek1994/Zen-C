@@ -873,6 +873,8 @@ Type *parse_type_base(ParserContext *ctx, Lexer *l);
  * @brief Parses an expression.
  */
 ASTNode *parse_expression(ParserContext *ctx, Lexer *l);
+ASTNode *parse_tuple_expression(ParserContext *ctx, Lexer *l, const char *type_name,
+                                ASTNode *first_elem);
 
 /**
  * @brief Parses an expression with minimum precedence.

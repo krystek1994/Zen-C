@@ -1866,6 +1866,16 @@ static void check_node(TypeChecker *tc, ASTNode *node)
         }
     }
     break;
+    case NODE_EXPR_TUPLE_LITERAL:
+    {
+        ASTNode *elem = node->tuple_literal.elements;
+        while (elem)
+        {
+            check_node(tc, elem);
+            elem = elem->next;
+        }
+    }
+    break;
     case NODE_EXPR_STRUCT_INIT:
         check_struct_init(tc, node);
         break;

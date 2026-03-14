@@ -1077,10 +1077,7 @@ ASTNode *parse_return(ParserContext *ctx, Lexer *l)
 
         if (is_tuple_lit)
         {
-            char *code = parse_tuple_literal(ctx, l, curr_func_ret);
-            ASTNode *raw = ast_create(NODE_RAW_STMT);
-            raw->raw_stmt.content = code;
-            n->ret.value = raw;
+            n->ret.value = parse_tuple_expression(ctx, l, curr_func_ret, NULL);
             handled = 1;
         }
     }

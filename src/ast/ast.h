@@ -145,6 +145,7 @@ typedef enum
     NODE_EXPR_SIZEOF,        ///< Sizeof expression.
     NODE_EXPR_STRUCT_INIT,   ///< Struct initializer.
     NODE_EXPR_ARRAY_LITERAL, ///< Array literal.
+    NODE_EXPR_TUPLE_LITERAL, ///< Tuple literal.
     NODE_EXPR_SLICE,         ///< Slice operation.
     NODE_STRUCT,             ///< Struct definition.
     NODE_FIELD,              ///< Struct field.
@@ -450,6 +451,12 @@ struct ASTNode
             ASTNode *elements;
             int count;
         } array_literal;
+
+        struct
+        {
+            ASTNode *elements;
+            int count;
+        } tuple_literal;
 
         struct
         {

@@ -2044,19 +2044,40 @@ void codegen_expression(ParserContext *ctx, ASTNode *node, FILE *out)
     case NODE_EXPR_ARRAY_LITERAL:
         fprintf(out, "{");
         ASTNode *elem = node->array_literal.elements;
-        int first = 1;
+        int first_arr = 1;
         while (elem)
         {
-            if (!first)
+            if (!first_arr)
             {
                 fprintf(out, ", ");
             }
             codegen_expression(ctx, elem, out);
             elem = elem->next;
-            first = 0;
+            first_arr = 0;
         }
         fprintf(out, "}");
         break;
+    case NODE_EXPR_TUPLE_LITERAL:
+    {
+        char *type = node->resolved_type ? node->resolved_type
+                     : node->type_info   ? type_to_string(node->type_info)
+                                         : "unknown";
+        fprintf(out, "(%s){", type);
+        ASTNode *tup_elem = node->tuple_literal.elements;
+        int first_tup = 1;
+        while (tup_elem)
+        {
+            if (!first_tup)
+            {
+                fprintf(out, ", ");
+            }
+            codegen_expression(ctx, tup_elem, out);
+            tup_elem = tup_elem->next;
+            first_tup = 0;
+        }
+        fprintf(out, "}");
+        break;
+    }
     case NODE_TERNARY:
         fprintf(out, "((");
         codegen_expression(ctx, node->ternary.cond, out);
