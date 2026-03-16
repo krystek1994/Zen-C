@@ -20,7 +20,7 @@ zc lsp
 
 - **儲存庫**: [zenc-lang/vscode-zenc](https://github.com/zenc-lang/vscode-zenc)
 
-直接從 **[Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=z-libs.zenc)** 安裝擴充功能。
+直接從 **[Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=zenc-lang.zenc)** 安裝擴充功能。
 
 或者，您可以從原始碼建置 `.vsix`。
 

@@ -11,6 +11,27 @@ def fetch_json(url):
     with urllib.request.urlopen(req) as response:
         return json.loads(response.read().decode())
 
+def wiki_to_markdown(wiki_text, page_url):
+    # Convert <lang> or <syntaxhighlight> blocks
+    def repl_code(match):
+        return f"\n```zc\n{match.group(1).strip()}\n```\n"
+    
+    md = re.sub(r'(?:<lang[^>]*>|<syntaxhighlight[^>]*>|<highlight[^>]*>)(.*?)(?:</lang>|</syntaxhighlight>|</highlight>)', 
+                repl_code, wiki_text, flags=re.DOTALL | re.IGNORECASE)
+    
+    # Convert internal links [[Target|Display]] or [[Target]]
+    md = re.sub(r'\[\[([^\]|]+)\|([^\]]+)\]\]', r'[\2](https://rosettacode.org/wiki/\1)', md)
+    md = re.sub(r'\[\[([^\]]+)\]\]', r'[\1](https://rosettacode.org/wiki/\1)', md)
+    
+    # Simple formatting: bold '''text''' and italics ''text''
+    md = re.sub(r"'''(.*?)'''", r"**\1**", md)
+    md = re.sub(r"''(.*?)''", r"*\1*", md)
+
+    # Clean up multiple newlines
+    md = re.sub(r'\n{3,}', '\n\n', md)
+    
+    return md.strip()
+
 def main():
     print("-> Fetching tasks from Rosetta Code...")
     
@@ -18,7 +39,7 @@ def main():
     data = fetch_json(url)
     pages = data['query']['categorymembers']
     
-    os.makedirs("examples/rosetta", exist_ok=True)
+    os.makedirs("examples/examples/rosetta", exist_ok=True)
     os.makedirs("website_out", exist_ok=True)
 
     for page in pages:
@@ -32,34 +53,35 @@ def main():
         parts = re.split(r'==\{\{header\|Zen[ _-]?C\}\}==', text, flags=re.IGNORECASE)
         
         if len(parts) > 1:
-            zen_c_section = parts[1].split('=={{header|')[0]
+            zen_c_section = parts[1].split('=={{header|')[0].strip()
             
-            match = re.search(r'(?:<lang[^>]*>|<syntaxhighlight[^>]*>|<highlight[^>]*>)(.*?)(?:</lang>|</syntaxhighlight>|</highlight>)', zen_c_section, re.DOTALL | re.IGNORECASE)
+            code_blocks = re.findall(r'(?:<lang[^>]*>|<syntaxhighlight[^>]*>|<highlight[^>]*>)(.*?)(?:</lang>|</syntaxhighlight>|</highlight>)', 
+                                    zen_c_section, re.DOTALL | re.IGNORECASE)
             
-            if match:
-                code = match.group(1).strip()
+            if code_blocks:
+                combined_code = "\n\n".join(block.strip() for block in code_blocks)
                 safe_title = title.replace("/", "_").replace(" ", "_")
                 page_url = f"https://rosettacode.org/wiki/{title.replace(' ', '_')}"
                 history_url = f"{page_url}?action=history"
                 
-                zc_filename = f"examples/rosetta/{safe_title}.zc"
+                zc_filename = f"examples/examples/rosetta/{safe_title}.zc"
                 with open(zc_filename, "w", encoding="utf-8") as f:
-                    f.write(code + "\n")
+                    f.write(combined_code + "\n")
                     
                 md_filename = f"website_out/{safe_title}.md"
+                content_md = wiki_to_markdown(zen_c_section, page_url)
+
                 with open(md_filename, "w", encoding="utf-8") as f:
                     f.write("+++\n")
                     f.write(f'title = "{title}"\n')
                     f.write("+++\n\n")
                     f.write(f"# {title}\n\n")
-                    f.write("```zc\n")
-                    f.write(code + "\n")
-                    f.write("```\n\n")
+                    f.write(content_md + "\n\n")
                     f.write("---\n")
                     f.write(f"**Attribution:** This is a community solution for the Rosetta Code task [**{title}**]({page_url}) in Zen C.\n\n")
                     f.write(f"*This article uses material from the Rosetta Code article **{title}**, which is released under the [GNU Free Documentation License 1.3](https://www.gnu.org/licenses/fdl-1.3.html). A list of the original authors can be found in the [page history]({history_url}).*\n")
                 
-                print(f"-> Scraped: {title}")
+                print(f"-> Scraped: {title} ({len(code_blocks)} blocks)")
             else:
                 print(f"-> Found header, but NO code block in: {title}")
         else:

@@ -20,7 +20,7 @@ Per Visual Studio Code, usa l'estensione ufficiale di Zen C:
 
 - **Repository**: [zenc-lang/vscode-zenc](https://github.com/zenc-lang/vscode-zenc)
 
-Installa l'estensione direttamente dal **[Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=z-libs.zenc)**.
+Installa l'estensione direttamente dal **[Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=zenc-lang.zenc)**.
 
 In alternativa, puoi compilare il `.vsix` dal codice sorgente.
 

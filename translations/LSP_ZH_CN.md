@@ -20,7 +20,7 @@ zc lsp
 
 - **仓库**: [zenc-lang/vscode-zenc](https://github.com/zenc-lang/vscode-zenc)
 
-直接从 **[Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=z-libs.zenc)** 安装扩展。
+直接从 **[Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=zenc-lang.zenc)** 安装扩展。
 
 或者，您可以从源代码构建 `.vsix`。
 

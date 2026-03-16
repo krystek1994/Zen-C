@@ -20,7 +20,7 @@ zc lsp
 
 - **Репозиторий**: [zenc-lang/vscode-zenc](https://github.com/zenc-lang/vscode-zenc)
 
-Установите расширение прямо из **[Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=z-libs.zenc)**.
+Установите расширение прямо из **[Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=zenc-lang.zenc)**.
 
 Кроме того, вы можете собрать `.vsix` из исходного кода.
 
