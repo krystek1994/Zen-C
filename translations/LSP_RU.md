@@ -20,15 +20,15 @@ zc lsp
 
 - **Репозиторий**: [zenc-lang/vscode-zenc](https://github.com/zenc-lang/vscode-zenc)
 
-Установите расширение прямо из **[Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=zenc-lang.zenc)**.
+Установите расширение прямо из **[Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=Z-libs.zenc)**.
 
 Кроме того, вы можете собрать `.vsix` из исходного кода.
 
 ### Vim / Neovim
 
-Поддержка Vim и Neovim обеспечивается через плагин `Zen-C.vim`, который включает подсветку синтаксиса и помощники по настройке LSP.
+Поддержка Vim и Neovim обеспечивается через плагин `zenc.vim`, который включает подсветку синтаксиса и помощники по настройке LSP.
 
-- **Репозиторий**: [davidscholberg/Zen-C.vim](https://github.com/davidscholberg/Zen-C.vim)
+- **Репозиторий**: [zenc-lang/zenc.vim](https://github.com/zenc-lang/zenc.vim)
 
 #### Neovim (пример с `lazy.nvim`)
 

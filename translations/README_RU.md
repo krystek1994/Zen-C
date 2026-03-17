@@ -62,6 +62,7 @@
 | **[vscode-zenc](https://github.com/zenc-lang/vscode-zenc)** | Официальное расширение VS Code (подсветка синтаксиса, сниппеты). | Alpha |
 | **[www](https://github.com/zenc-lang/www)** | Исходный код `zenc-lang.org`. | Активен |
 | **[awesome-zenc](https://github.com/zenc-lang/awesome-zenc)** | Курируемый список отличных примеров Zen C. | Растет |
+| **[zenc.vim](https://github.com/zenc-lang/zenc.vim)** | Официальный плагин для Vim/Neovim (Синтаксис, Отступы). | Активен |
 
 ## Галерея
 
@@ -1497,7 +1498,7 @@ Zen C включает встроенный языковой сервер для
 
 #### Visual Studio Code
 
-Для наилучшей работы в VS Code установите официальное [расширение Zen C](https://marketplace.visualstudio.com/items?itemName=Z-Libs.zenc). Для отладки вы можете использовать расширения **C/C++** (от Microsoft) или **CodeLLDB**.
+Для наилучшей работы в VS Code установите официальное [расширение Zen C](https://marketplace.visualstudio.com/items?itemName=Z-libs.zenc). Для отладки вы можете использовать расширения **C/C++** (от Microsoft) или **CodeLLDB**.
 
 Добавьте эти конфигурации в вашу директорию `.vscode`, чтобы включить отладку одним щелчком мыши:
 
@@ -1756,6 +1757,7 @@ fn main() {
 *   **[zc-ape](https://github.com/OEvgeny/zc-ape)** (MIT License): Оригинальный порт Actually Portable Executable Zen-C от [Eugene Olonov](https://github.com/OEvgeny).
 *   **[Cosmopolitan Libc](https://github.com/jart/cosmopolitan)** (ISC License): Основополагающая библиотека, которая делает APE возможной.
 *   **[TRE](https://github.com/laurikari/tre)** (BSD License): Используется для движка регулярных выражений в стандартной библиотеке.
+*   **[zenc.vim](https://github.com/zenc-lang/zenc.vim)** (лицензия MIT): Официальный плагин для Vim/Neovim, основной автор — **[davidscholberg](https://github.com/davidscholberg)**.
 
 ---
 

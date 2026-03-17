@@ -1552,7 +1552,7 @@ I programmi Zen C possono essere sottoposti a debug utilizzando i debugger C sta
 
 #### Visual Studio Code
 
-Per la migliore esperienza in VS Code, installa l'[estensione ufficiale Zen C](https://marketplace.visualstudio.com/items?itemName=Z-Libs.zenc). Per il debugging, puoi utilizzare l'estensione **C/C++** (di Microsoft) o **CodeLLDB**.
+Per la migliore esperienza in VS Code, installa l'[estensione ufficiale Zen C](https://marketplace.visualstudio.com/items?itemName=Z-libs.zenc). Per il debugging, puoi utilizzare l'estensione **C/C++** (di Microsoft) o **CodeLLDB**.
 
 Aggiungi queste configurazioni alla tua directory `.vscode` per abilitare il debugging con un clic:
 
@@ -1811,6 +1811,7 @@ Questo progetto utilizza librerie esterne. I testi di licenza completi possono e
 * **[zc-ape](https://github.com/OEvgeny/zc-ape)** (Licenza MIT): La versione originale di Actually Portable Executable di Zen-C, realizzata da [Eugene Olonov](https://github.com/OEvgeny).
 * **[Cosmopolitan Libc](https://github.com/jart/cosmopolitan)** (Licenza ISC): La libreria fondamentale che rende possibile APE.
 * **[TRE](https://github.com/laurikari/tre)** (Licenza BSD): Usato per il motore di espressioni regolari nella libreria standard.
+* **[zenc.vim](https://github.com/zenc-lang/zenc.vim)** (Licenza MIT): Il plugin ufficiale per Vim/Neovim, scritto principalmente da **[davidscholberg](https://github.com/davidscholberg)**.
 
 ---
 

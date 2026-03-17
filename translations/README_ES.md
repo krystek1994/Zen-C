@@ -62,6 +62,7 @@ El proyecto Zen C consta de varios repositorios. A continuación se presentan lo
 | **[vscode-zenc](https://github.com/zenc-lang/vscode-zenc)** | Extensión oficial de VS Code (Resaltado de sintaxis, Snippets). | Alpha |
 | **[www](https://github.com/zenc-lang/www)** | Código fuente de `zenc-lang.org`. | Activo |
 | **[awesome-zenc](https://github.com/zenc-lang/awesome-zenc)** | Una lista curada de ejemplos asombrosos de Zen C. | Creciendo |
+| **[zenc.vim](https://github.com/zenc-lang/zenc.vim)** | Plugin oficial para Vim/Neovim (Sintaxis, Sangría). | Activo |
 
 ## Proyectos Destacados
 
@@ -1558,7 +1559,7 @@ Los programas de Zen C se pueden depurar utilizando depuradores de C estándar c
 
 #### Visual Studio Code
 
-Para obtener la mejor experiencia en VS Code, instale la [extensión oficial de Zen C](https://marketplace.visualstudio.com/items?itemName=Z-Libs.zenc). Para la depuración, puede utilizar la extensión **C/C++** (de Microsoft) o **CodeLLDB**.
+Para obtener la mejor experiencia en VS Code, instale la [extensión oficial de Zen C](https://marketplace.visualstudio.com/items?itemName=Z-libs.zenc). Para la depuración, puede utilizar la extensión **C/C++** (de Microsoft) o **CodeLLDB**.
 
 Agregue estas configuraciones a su directorio `.vscode` para habilitar la depuración con un solo clic:
 
@@ -1817,6 +1818,7 @@ Este proyecto utiliza bibliotecas de terceros. Los textos completos de las licen
 *   **[zc-ape](https://github.com/OEvgeny/zc-ape)** (Licencia MIT): El port original de Ejecutable Realmente Portable de Zen-C por [Eugene Olonov](https://github.com/OEvgeny).
 *   **[Cosmopolitan Libc](https://github.com/jart/cosmopolitan)** (Licencia ISC): La biblioteca fundamental que hace posible APE.
 *   **[TRE](https://github.com/laurikari/tre)** (Licencia BSD): Usado para el motor de expresiones regulares en la biblioteca estándar.
+*   **[zenc.vim](https://github.com/zenc-lang/zenc.vim)** (Licencia MIT): El plugin oficial para Vim/Neovim, escrito principalmente por **[davidscholberg](https://github.com/davidscholberg)**.
 
 ---
 

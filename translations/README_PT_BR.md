@@ -1508,7 +1508,7 @@ Os programas Zen C podem ser depurados usando depuradores C padrão, como **LLDB
 
 #### Visual Studio Code
 
-Para a melhor experiência no VS Code, instale a [extensão oficial do Zen C](https://marketplace.visualstudio.com/items?itemName=Z-Libs.zenc). Para depuração, você pode usar a extensão **C/C++** (da Microsoft) ou a **CodeLLDB**.
+Para a melhor experiência no VS Code, instale a [extensão oficial do Zen C](https://marketplace.visualstudio.com/items?itemName=Z-libs.zenc). Para depuração, você pode usar a extensão **C/C++** (da Microsoft) ou a **CodeLLDB**.
 
 Adicione estas configurações ao seu diretório `.vscode` para habilitar a depuração com um clique:
 
@@ -1766,6 +1766,7 @@ Este projeto usa bibliotecas de terceiros. Textos completos de licença podem se
 *   **[zc-ape](https://github.com/OEvgeny/zc-ape)** (Licença MIT): O port original Actually Portable Executable do Zen-C por [Eugene Olonov](https://github.com/OEvgeny).
 *   **[Cosmopolitan Libc](https://github.com/jart/cosmopolitan)** (Licença ISC): A biblioteca fundadora que torna APE possível.
 *   **[TRE](https://github.com/laurikari/tre)** (Licença BSD): Usado para o motor de expressões regulares na biblioteca padrão.
+*   **[zenc.vim](https://github.com/zenc-lang/zenc.vim)** (Licença MIT): O plugin oficial para Vim/Neovim, escrito principalmente por **[davidscholberg](https://github.com/davidscholberg)**.
 
 ---
 

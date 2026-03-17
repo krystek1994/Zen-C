@@ -20,15 +20,15 @@ zc lsp
 
 - **儲存庫**: [zenc-lang/vscode-zenc](https://github.com/zenc-lang/vscode-zenc)
 
-直接從 **[Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=zenc-lang.zenc)** 安裝擴充功能。
+直接從 **[Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=Z-libs.zenc)** 安裝擴充功能。
 
 或者，您可以從原始碼建置 `.vsix`。
 
 ### Vim / Neovim
 
-透過 `Zen-C.vim` 外掛程式提供對 Vim 和 Neovim 的支援，其中包括語法高亮和 LSP 配置助手。
+透過 `zenc.vim` 外掛程式提供對 Vim 和 Neovim 的支援，其中包括語法高亮和 LSP 配置助手。
 
-- **儲存庫**: [davidscholberg/Zen-C.vim](https://github.com/davidscholberg/Zen-C.vim)
+- **儲存庫**: [zenc-lang/zenc.vim](https://github.com/zenc-lang/zenc.vim)
 
 #### Neovim (`lazy.nvim` 範例)
 

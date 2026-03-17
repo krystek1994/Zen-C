@@ -62,6 +62,7 @@ The Zen C project consists of several repositories. Below you can find the prima
 | **[vscode-zenc](https://github.com/zenc-lang/vscode-zenc)** | Official VS Code extension (Syntax Highlighting, Snippets). | Alpha |
 | **[www](https://github.com/zenc-lang/www)** | Source code for `zenc-lang.org`. | Active |
 | **[awesome-zenc](https://github.com/zenc-lang/awesome-zenc)** | A curated list of awesome Zen C examples | Growing |
+| **[zenc.vim](https://github.com/zenc-lang/zenc.vim)** | Official Vim/Neovim plugin (Syntax, Indentation). | Active |
 
 ## Showcase
 
@@ -1553,7 +1554,7 @@ zc repl
 Zen C includes a built-in Language Server for editor integration.
 
 - **[Installation & Setup Guide](docs/LSP.md)**
-- **Supported Editors**: VS Code, Neovim, Vim, Zed, and any LSP-capable editor.
+- **Supported Editors**: VS Code, Neovim, Vim ([zenc.vim](https://github.com/zenc-lang/zenc.vim)), Zed, and any LSP-capable editor.
 
 Use `zc lsp` to start the server.
 
@@ -1563,7 +1564,7 @@ Zen C programs can be debugged using standard C debuggers like **LLDB** or **GDB
 
 #### Visual Studio Code
 
-For the best experience in VS Code, install the official [Zen C extension](https://marketplace.visualstudio.com/items?itemName=Z-Libs.zenc). For debugging, you can use the **C/C++** (by Microsoft) or **CodeLLDB** extension.
+For the best experience in VS Code, install the official [Zen C extension](https://marketplace.visualstudio.com/items?itemName=Z-libs.zenc). For debugging, you can use the **C/C++** (by Microsoft) or **CodeLLDB** extension.
 
 Add these configurations to your `.vscode` directory to enable one-click debugging:
 
@@ -1822,6 +1823,7 @@ This project uses third-party libraries. Full license texts can be found in the 
 *   **[zc-ape](https://github.com/OEvgeny/zc-ape)** (MIT License): The original Actually Portable Executable port of Zen-C by [Eugene Olonov](https://github.com/OEvgeny).
 *   **[Cosmopolitan Libc](https://github.com/jart/cosmopolitan)** (ISC License): The foundational library that makes APE possible.
 *   **[TRE](https://github.com/laurikari/tre)** (BSD License): Used for the regular expression engine in the standard library.
+*   **[zenc.vim](https://github.com/zenc-lang/zenc.vim)** (MIT License): The official Vim/Neovim plugin, primarily authored by **[davidscholberg](https://github.com/davidscholberg)**.
 
 ---
 

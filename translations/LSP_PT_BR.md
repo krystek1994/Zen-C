@@ -20,15 +20,15 @@ Para Visual Studio Code, use a extensão oficial do Zen C:
 
 - **Repositório**: [zenc-lang/vscode-zenc](https://github.com/zenc-lang/vscode-zenc)
 
-Instale a extensão diretamente do **[Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=zenc-lang.zenc)**.
+Instale a extensão diretamente do **[Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=Z-libs.zenc)**.
 
 Alternativamente, você pode compilar o `.vsix` a partir do código fonte.
 
 ### Vim / Neovim
 
-O suporte para Vim e Neovim é fornecido através do plugin `Zen-C.vim`, que inclui destaque de sintaxe e auxiliares de configuração LSP.
+O suporte para Vim e Neovim é fornecido através do plugin `zenc.vim`, que inclui destaque de sintaxe e auxiliares de configuração LSP.
 
-- **Repositório**: [davidscholberg/Zen-C.vim](https://github.com/davidscholberg/Zen-C.vim)
+- **Repositório**: [zenc-lang/zenc.vim](https://github.com/zenc-lang/zenc.vim)
 
 #### Neovim (exemplo com `lazy.nvim`)
 
