@@ -604,6 +604,13 @@ void codegen_expression(ParserContext *ctx, ASTNode *node, FILE *out)
 
         if (node->call.callee->type == NODE_EXPR_MEMBER)
         {
+            // If the member is a function pointer, don't mangle it as a method call
+            Type *callee_ti = get_inner_type(node->call.callee->type_info);
+            if (callee_ti && callee_ti->kind == TYPE_FUNCTION)
+            {
+                goto skip_method_mangling;
+            }
+
             ASTNode *target = node->call.callee->member.target;
             char *method = node->call.callee->member.field;
 
@@ -896,6 +903,8 @@ void codegen_expression(ParserContext *ctx, ASTNode *node, FILE *out)
                 free(type);
             }
         }
+
+    skip_method_mangling:;
 
         if (node->call.callee->type == NODE_EXPR_VAR)
         {
