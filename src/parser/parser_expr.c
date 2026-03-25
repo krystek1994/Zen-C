@@ -5930,7 +5930,7 @@ ASTNode *parse_expr_prec(ParserContext *ctx, Lexer *l, Precedence min_prec)
             if (next.type == TOK_OP)
             {
                 if (is_token(next, "-") || is_token(next, "!") || is_token(next, "*") ||
-                    is_token(next, "&") || is_token(next, "~"))
+                    is_token(next, "&") || is_token(next, "~") || is_token(next, "."))
                 {
                     is_ternary = 1;
                 }
