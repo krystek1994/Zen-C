@@ -4755,7 +4755,7 @@ int validate_types(ParserContext *ctx)
                 SelectiveImport *si = find_selective_import(ctx, u->name);
                 if (!si && !is_extern_symbol(ctx, u->name))
                 {
-                    if (!is_trait(u->name))
+                    if (!is_trait(u->name) && TYPE_UNKNOWN == find_primitive_kind(u->name))
                     {
                         char msg[256];
                         snprintf(msg, sizeof(msg), "Unknown type '%s' (assuming external C struct)",
