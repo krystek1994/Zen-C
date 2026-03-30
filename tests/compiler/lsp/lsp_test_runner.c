@@ -606,6 +606,59 @@ void test_outline()
     free(resp);
 }
 
+void test_formatting()
+{
+    printf("Running test_formatting...\n");
+    int fd = open("/tmp/test_format.zc", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd >= 0)
+    {
+        const char *code =
+            "fn main() {\n  let x = 1;\n    if (x == 1) {\n      println(\"hi\");\n    }\n}\n";
+        write(fd, code, strlen(code));
+        close(fd);
+    }
+
+    send_request(
+        "{\"jsonrpc\": \"2.0\", \"method\": \"textDocument/didOpen\", \"params\": "
+        "{\"textDocument\": {\"uri\": \"file:///tmp/test_format.zc\", \"languageId\": \"zenc\", "
+        "\"version\": 1, \"text\": \"fn main() {\\n  let x = 1;\\n    if (x == 1) {\\n      "
+        "println(\\\"hi\\\");\\n    }\\n}\\n\"}}}");
+    usleep(100000);
+
+    send_request("{\"jsonrpc\": \"2.0\", \"id\": 95, \"method\": \"textDocument/formatting\", "
+                 "\"params\": {\"textDocument\": {\"uri\": \"file:///tmp/test_format.zc\"}}}");
+
+    char *resp = wait_for_response(95);
+    if (resp && strstr(resp, "newText"))
+    {
+        printf("PASS: test_formatting (received edits)\n");
+    }
+    else
+    {
+        printf("FAIL: test_formatting (missing edits): %s\n", resp);
+    }
+    free(resp);
+}
+
+void test_signature_help()
+{
+    printf("Running test_signature_help...\n");
+    send_request("{\"jsonrpc\": \"2.0\", \"id\": 96, \"method\": \"textDocument/signatureHelp\", "
+                 "\"params\": {\"textDocument\": {\"uri\": \"file:///tmp/test_format.zc\"}, "
+                 "\"position\": {\"line\": 3, \"character\": 14}}}"); // After println(
+
+    char *resp = wait_for_response(96);
+    if (resp && strstr(resp, "signatures"))
+    {
+        printf("PASS: test_signature_help\n");
+    }
+    else
+    {
+        printf("FAIL: test_signature_help: %s\n", resp);
+    }
+    free(resp);
+}
+
 int main()
 {
     start_lsp_server();
@@ -619,6 +672,8 @@ int main()
     test_references();
     test_rename();
     test_outline();
+    test_formatting();
+    test_signature_help();
     test_shutdown();
     send_request("{\"jsonrpc\": \"2.0\", \"method\": \"exit\", \"params\": {}}");
     waitpid(child_pid, NULL, 0);

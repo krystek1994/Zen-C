@@ -62,6 +62,7 @@ SRCS = src/main.c \
        src/lsp/lsp_analysis.c \
        src/lsp/lsp_semantic.c \
        src/lsp/lsp_index.c \
+       src/lsp/lsp_formatter.c \
        src/lsp/lsp_project.c \
        src/lsp/cJSON.c \
        src/zen/zen_facts.c \

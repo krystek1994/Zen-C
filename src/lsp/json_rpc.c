@@ -1,6 +1,7 @@
 #include "json_rpc.h"
 #include "cJSON.h"
 #include "lsp_project.h"
+#include "lsp_formatter.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -226,6 +227,7 @@ void handle_request(const char *json_str)
     {
         char *uri = NULL;
         int line = 0, col = 0;
+        get_params(json, &uri, &line, &col);
         if (uri)
         {
             lsp_signature_help(uri, line, col, id);
@@ -282,6 +284,69 @@ void handle_request(const char *json_str)
         {
             lsp_rename(uri, line, col, new_name, id);
             free(uri);
+        }
+    }
+    else if (strcmp(method, "textDocument/formatting") == 0)
+    {
+        cJSON *params = cJSON_GetObjectItem(json, "params");
+        cJSON *doc = cJSON_GetObjectItem(params, "textDocument");
+        if (doc)
+        {
+            cJSON *uri_item = cJSON_GetObjectItem(doc, "uri");
+            if (uri_item && uri_item->valuestring)
+            {
+                ProjectFile *pf = lsp_project_get_file(uri_item->valuestring);
+                if (pf && pf->source)
+                {
+                    char *formatted = lsp_format_source(pf->source);
+                    if (formatted)
+                    {
+                        cJSON *res_json = cJSON_CreateObject();
+                        cJSON_AddStringToObject(res_json, "jsonrpc", "2.0");
+                        cJSON_AddNumberToObject(res_json, "id", id);
+
+                        cJSON *result = cJSON_CreateArray();
+                        cJSON *edit = cJSON_CreateObject();
+
+                        // Replace whole document
+                        cJSON *range = cJSON_CreateObject();
+                        cJSON *start = cJSON_CreateObject();
+                        cJSON_AddNumberToObject(start, "line", 0);
+                        cJSON_AddNumberToObject(start, "character", 0);
+
+                        // Count lines in source
+                        int lines = 0;
+                        const char *p = pf->source;
+                        while (*p)
+                        {
+                            if (*p == '\n')
+                            {
+                                lines++;
+                            }
+                            p++;
+                        }
+
+                        cJSON *end = cJSON_CreateObject();
+                        cJSON_AddNumberToObject(end, "line", lines + 1);
+                        cJSON_AddNumberToObject(end, "character", 0);
+
+                        cJSON_AddItemToObject(range, "start", start);
+                        cJSON_AddItemToObject(range, "end", end);
+                        cJSON_AddItemToObject(edit, "range", range);
+                        cJSON_AddStringToObject(edit, "newText", formatted);
+
+                        cJSON_AddItemToArray(result, edit);
+                        cJSON_AddItemToObject(res_json, "result", result);
+
+                        char *str = cJSON_PrintUnformatted(res_json);
+                        fprintf(stdout, "Content-Length: %zu\r\n\r\n%s", strlen(str), str);
+                        fflush(stdout);
+                        free(str);
+                        cJSON_Delete(res_json);
+                        free(formatted);
+                    }
+                }
+            }
         }
     }
     else if (strcmp(method, "shutdown") == 0)

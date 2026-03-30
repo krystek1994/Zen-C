@@ -10,6 +10,7 @@ typedef struct Diagnostic
 {
     int line;
     int col;
+    int len;
     char *message;
     struct Diagnostic *next;
 } Diagnostic;
@@ -41,6 +42,7 @@ void lsp_on_error(void *data, Token t, const char *msg)
     Diagnostic *d = calloc(1, sizeof(Diagnostic));
     d->line = t.line > 0 ? t.line - 1 : 0;
     d->col = t.col > 0 ? t.col - 1 : 0;
+    d->len = t.len;
     d->message = strdup(msg);
     d->next = NULL;
 
@@ -111,7 +113,7 @@ void lsp_check_file(const char *uri, const char *json_src, int id)
 
         cJSON *end = cJSON_CreateObject();
         cJSON_AddNumberToObject(end, "line", d->line);
-        cJSON_AddNumberToObject(end, "character", d->col + 1);
+        cJSON_AddNumberToObject(end, "character", d->col + d->len);
 
         cJSON_AddItemToObject(range, "start", start);
         cJSON_AddItemToObject(range, "end", end);
@@ -989,18 +991,60 @@ void lsp_signature_help(const char *uri, int line, int col, int id)
                             first = 0;
                         }
                         char *ret_str = type_to_string(fn->ret_type);
-                        sprintf(label, "fn %s(%s) -> %s", fn->name, params,
-                                ret_str ? ret_str : "void");
+                        snprintf(label, sizeof(label), "fn %s(%s) -> %s", fn->name, params,
+                                 ret_str ? ret_str : "void");
                         if (ret_str)
                         {
                             free(ret_str);
                         }
 
                         cJSON_AddStringToObject(sig, "label", label);
-                        cJSON_AddItemToObject(sig, "parameters", cJSON_CreateArray());
+
+                        cJSON *params_array = cJSON_CreateArray();
+                        char *p_ptr = params;
+                        while (*p_ptr)
+                        {
+                            char *p_end = strstr(p_ptr, ", ");
+                            char param_label[256];
+                            if (p_end)
+                            {
+                                int p_len = p_end - p_ptr;
+                                if (p_len > 255)
+                                {
+                                    p_len = 255;
+                                }
+                                strncpy(param_label, p_ptr, p_len);
+                                param_label[p_len] = 0;
+                                p_ptr = p_end + 2;
+                            }
+                            else
+                            {
+                                strcpy(param_label, p_ptr);
+                                p_ptr += strlen(p_ptr);
+                            }
+                            cJSON *p_obj = cJSON_CreateObject();
+                            cJSON_AddStringToObject(p_obj, "label", param_label);
+                            cJSON_AddItemToArray(params_array, p_obj);
+                        }
+                        cJSON_AddItemToObject(sig, "parameters", params_array);
                         cJSON_AddItemToArray(sigs, sig);
 
                         cJSON_AddItemToObject(result, "signatures", sigs);
+
+                        // Calculate Active Parameter
+                        int active = 0;
+                        char *active_p = ptr - 1;
+                        while (active_p > p)
+                        {
+                            if (*active_p == ',')
+                            {
+                                active++;
+                            }
+                            active_p--;
+                        }
+                        cJSON_AddNumberToObject(result, "activeSignature", 0);
+                        cJSON_AddNumberToObject(result, "activeParameter", active);
+
                         cJSON_AddItemToObject(root, "result", result);
                         found = 1;
                         break;

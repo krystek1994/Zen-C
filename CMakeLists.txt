@@ -102,6 +102,7 @@ set(SRCS
     src/lsp/cJSON.c
     src/lsp/json_rpc.c
     src/lsp/lsp_main.c
+    src/lsp/lsp_formatter.c
     src/lsp/lsp_project.c
     src/lsp/lsp_analysis.c
     src/lsp/lsp_index.c

@@ -160,12 +160,38 @@ void lsp_walk_node(LSPIndex *idx, ASTNode *node)
             sprintf(hover, "struct %s", node->strct.name);
         }
         lsp_index_add_def(idx, node->token, hover, node);
+
+        // Recurse into fields
+        ASTNode *field = node->strct.fields;
+        while (field)
+        {
+            if (field->type == NODE_FIELD)
+            {
+                char fh[256];
+                sprintf(fh, "field %s: %s", field->field.name, field->field.type);
+                lsp_index_add_def(idx, field->token, fh, field);
+            }
+            field = field->next;
+        }
     }
     else if (node->type == NODE_ENUM)
     {
         char hover[256];
         sprintf(hover, "enum %s", node->enm.name);
         lsp_index_add_def(idx, node->token, hover, node);
+
+        // Recurse into variants
+        ASTNode *variant = node->enm.variants;
+        while (variant)
+        {
+            if (variant->type == NODE_ENUM_VARIANT)
+            {
+                char vh[256];
+                sprintf(vh, "variant %s", variant->variant.name);
+                lsp_index_add_def(idx, variant->token, vh, variant);
+            }
+            variant = variant->next;
+        }
     }
     else if (node->type == NODE_TYPE_ALIAS)
     {

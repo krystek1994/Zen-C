@@ -46,6 +46,7 @@ set SRCS=src\main.c ^
  src\analysis\const_fold.c ^
  src\lsp\json_rpc.c ^
  src\lsp\lsp_main.c ^
+ src\lsp\lsp_formatter.c ^
  src\lsp\lsp_analysis.c ^
  src\lsp\lsp_semantic.c ^
  src\lsp\lsp_index.c ^
