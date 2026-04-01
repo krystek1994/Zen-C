@@ -11,7 +11,7 @@ In diesem Abschnitt kannst du angeben, welche Versionen deines Projekts aktuell 
 
 ## Meldung einer Sicherheitslücke
 
-Wir nehmen die Sicherheit von Zen C sehr ernst. Solltest du eine Sicherheitslücke im Zen C-Compiler, der Standardbibliothek oder den zugehörigen Tools gefunden hast, melde diese bitte wie unten beschrieben.
+Wir nehmen die Sicherheit von Zen C sehr ernst. Solltest du eine Sicherheitslücke im Zen C-Compiler, der Standardbibliothek oder den zugehörigen Tools gefunden haben, melde diese bitte wie unten beschrieben.
 
 **Bitte melde Sicherheitslücken nicht über öffentliche GitHub-Issues.**
 
