@@ -114,7 +114,7 @@
 ### Установка
 ```bash
 git clone https://github.com/zenc-lang/zenc.git
-cd Zen-C
+cd zenc
 make clean # удалить старые файлы сборки
 make
 sudo make install
@@ -172,7 +172,7 @@ zc build hello.zc --zen
 ### Переменные окружения
 Установите `ZC_ROOT` для указания пути к стандартной библиотеке (для импортов типа `import "std/vec.zc"`). Это позволяет запускать `zc` из любого каталога.
 ```bash
-export ZC_ROOT=/path/to/Zen-C
+export ZC_ROOT=/path/to/zenc
 ```
 
 ---

@@ -116,7 +116,7 @@ Confira estes projetos construídos com Zen C:
 
 ```bash
 git clone https://github.com/zenc-lang/zenc.git
-cd Zen-C
+cd zenc
 make clean # remove arquivos de build antigos
 make
 sudo make install
@@ -177,7 +177,7 @@ zc build hello.zc --zen
 Você pode configurar `ZC_ROOT` para especificar a localização da Biblioteca Padrão (imports padrões como `import "std/vec.zc"`). Isso permite que você execute `zc` de qualquer diretório.
 
 ```bash
-export ZC_ROOT=/path/to/Zen-C
+export ZC_ROOT=/path/to/zenc
 ```
 
 ---

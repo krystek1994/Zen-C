@@ -117,7 +117,7 @@ Dai un'occhiata a questi progetti creati con Zen C:
 
 ```bash
 git clone https://github.com/zenc-lang/zenc.git
-cd Zen-C
+cd zenc
 make clean # rimuove i vecchi file di build
 make
 sudo make install
@@ -179,7 +179,7 @@ zc build hello.zc --zen
 Puoi impostare `ZC_ROOT` per specificare la posizione della Libreria Standard (per inclusioni standard come `import "std/vector.zc"`). Ciò ti permetterà di eseguire il comando `zc` da qualsiasi directory.
 
 ```bash
-export ZC_ROOT=/path/to/Zen-C
+export ZC_ROOT=/path/to/zenc
 ```
 
 ---

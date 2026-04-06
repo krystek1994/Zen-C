@@ -117,7 +117,7 @@ Zen C 项目包含多个仓库。下面是主要的仓库列表：
 
 ```bash
 git clone https://github.com/zenc-lang/zenc.git
-cd Zen-C
+cd zenc
 make clean # 移除旧的构建文件
 make
 sudo make install
@@ -179,7 +179,7 @@ zc build hello.zc --zen
 你可以设置 `ZC_ROOT` 来指定标准库的位置（标准导入如 `import "std/vector.zc"`）。这允许你从任何目录运行 `zc`。
 
 ```bash
-export ZC_ROOT=/path/to/Zen-C
+export ZC_ROOT=/path/to/zenc
 ```
 
 ---
