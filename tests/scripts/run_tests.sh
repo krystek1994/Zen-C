@@ -123,6 +123,15 @@ while read -r test_file; do
         fi
     fi
 
+    # Skip tests known to fail with Zig
+    if [[ "$CC_NAME" == *"zig"* ]]; then
+        if [[ "$test_file" == *"plugins_suite.zc"* ]]; then
+            echo "Skipping $test_file (Plugins not fully supported by zig cc yet)"
+            ((SKIPPED++))
+            continue
+        fi
+    fi
+
     # Skip C++-incompatible tests
     if [ $USE_CPP -eq 1 ]; then
         # Inline assembly tests use C-only syntax
