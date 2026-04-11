@@ -345,7 +345,7 @@ ReferenceResult *lsp_project_find_references(const char *name)
                     {
                         scan_name = r->node->var_ref.name;
                     }
-                    else if (r->node->type == NODE_EXPR_CALL &&
+                    else if (r->node->type == NODE_EXPR_CALL && r->node->call.callee &&
                              r->node->call.callee->type == NODE_EXPR_VAR)
                     {
                         scan_name = r->node->call.callee->var_ref.name;

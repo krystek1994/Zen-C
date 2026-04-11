@@ -635,6 +635,17 @@ static LSPContext lsp_get_completion_context(const char *source, int line, int c
 
     // Scan backward from cursor for assignment or recent block close
     int i = col - 1;
+    int line_len = 0;
+    while (line_ptr[line_len] && line_ptr[line_len] != '\n' && line_ptr[line_len] != '\r')
+    {
+        line_len++;
+    }
+
+    if (i >= line_len)
+    {
+        i = line_len - 1;
+    }
+
     while (i >= 0 && (line_ptr[i] == ' ' || line_ptr[i] == '\t'))
     {
         i--;
@@ -795,7 +806,13 @@ void lsp_completion(const char *uri, int line, int col, int id)
             ptr++;
         }
 
-        if (col > 0 &&
+        int line_len = 0;
+        while (ptr[line_len] && ptr[line_len] != '\n' && ptr[line_len] != '\r')
+        {
+            line_len++;
+        }
+
+        if (col > 0 && col <= line_len &&
             (ptr[col - 1] == '.' || (col > 1 && ptr[col - 2] == ':' && ptr[col - 1] == ':')))
         {
             int i = col - 2;
@@ -806,8 +823,8 @@ void lsp_completion(const char *uri, int line, int col, int id)
             if (i >= 0)
             {
                 int end_ident = i;
-                while (i >= 0 && (isalnum(ptr[i]) || ptr[i] == '_' || ptr[i] == '.' ||
-                                  ptr[i] == '-' || ptr[i] == '>'))
+                while (i >= 0 && (isalnum((unsigned char)ptr[i]) || ptr[i] == '_' ||
+                                  ptr[i] == '.' || ptr[i] == '-' || ptr[i] == '>'))
                 {
                     i--;
                 }
@@ -936,7 +953,9 @@ void lsp_completion(const char *uri, int line, int col, int id)
                                             if (strcmp(field->field.name, parts[p]) == 0)
                                             {
                                                 free(type_name);
-                                                type_name = strdup(field->field.type);
+                                                type_name = field->field.type
+                                                                ? strdup(field->field.type)
+                                                                : NULL;
                                                 found_field = 1;
                                                 break;
                                             }
@@ -985,7 +1004,9 @@ void lsp_completion(const char *uri, int line, int col, int id)
                                                                     field->field.name);
                                             cJSON_AddNumberToObject(item, "kind", 5); // Field
                                             char detail[MAX_SHORT_MSG_LEN];
-                                            sprintf(detail, "field %s", field->field.type);
+                                            snprintf(detail, sizeof(detail), "field %s",
+                                                     field->field.type ? field->field.type
+                                                                       : "unknown");
                                             cJSON_AddStringToObject(item, "detail", detail);
                                             cJSON_AddItemToArray(items, item);
                                             field = field->next;
