@@ -1,0 +1,20 @@
+struct S {
+    f: f64;
+}
+
+impl S {
+    fn neg(self) -> S {
+        return S{f: -self.f};
+    }
+
+    fn to_string(self) -> string {
+        return "{self.f:g}";
+    }
+}
+
+fn main() {
+    let s = S{f: 42.0};
+    println "{s}";
+    println "{-s}";
+    println "{(-s)}";
+}

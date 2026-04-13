@@ -1744,7 +1744,7 @@ static ASTNode *create_fstring_block(ParserContext *ctx, Token parent_token, cha
     ASTNode *ret_b = ast_create(NODE_RAW_STMT);
     ret_b->token = parent_token;
     char ret_buf[64];
-    snprintf(ret_buf, sizeof(ret_buf), "_fs_buf_%d;", fs_id);
+    snprintf(ret_buf, sizeof(ret_buf), "_fs_buf_%d", fs_id);
     ret_b->raw_stmt.content = xstrdup(ret_buf);
 
     tail->next = ret_b;
