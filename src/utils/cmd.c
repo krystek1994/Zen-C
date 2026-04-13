@@ -261,6 +261,8 @@ void build_compile_arg_list(ArgList *list, const char *outfile, const char *temp
     if (g_config.input_dir)
     {
         arg_list_add_fmt(list, "-I%s", g_config.input_dir);
+        arg_list_add(list, "-iquote");
+        arg_list_add(list, g_config.input_dir);
     }
 }
 
