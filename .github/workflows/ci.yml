@@ -91,6 +91,13 @@ jobs:
           ./tests/scripts/run_tests.sh --cc "${{ matrix.cc }}"
         fi
 
+    - name: Upload Failed Test Artifacts
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: failed-test-artifacts
+        path: test_out_*.out*
+
   test-lsp:
     name: LSP Tests
     runs-on: ubuntu-latest

@@ -178,9 +178,9 @@ while read -r test_file; do
     
     # Add -w to suppress warnings as requested
     tmp_out="test_out_$$.out"
+    cmd_str="$ZC run \"$test_file\" -o \"$tmp_out\" -w \"${zc_args[@]}\""
     output=$(set -o pipefail; $ZC run "$test_file" -o "$tmp_out" -w "${zc_args[@]}" 2>&1 | tr -d '\0')
     exit_code=$?
-    rm -f "$tmp_out" "${tmp_out}.cpp"
     
     # Check for expected failure annotation
     if grep -q "// EXPECT: FAIL" "$test_file"; then
@@ -198,10 +198,31 @@ while read -r test_file; do
             ((PASSED++))
         else
             echo "FAIL"
+            echo "----------------------------------------"
+            echo "Command: $cmd_str"
+            echo "Output:"
             echo "$output"
+            # Keep the output file for debugging
+            if [ -f "$tmp_out" ]; then
+                echo "Generated C preserved at: $tmp_out"
+                echo "--- Source Begin ---"
+                cat "$tmp_out"
+                echo "--- Source End ---"
+            elif [ -f "${tmp_out}.cpp" ]; then
+                echo "Generated C++ preserved at: ${tmp_out}.cpp"
+                echo "--- Source Begin ---"
+                cat "${tmp_out}.cpp"
+                echo "--- Source End ---"
+            fi
+            echo "----------------------------------------"
             ((FAILED++))
             FAILED_TESTS="$FAILED_TESTS\n- $test_file"
         fi
+    fi
+    
+    # If passed, clean up. If failed, let the user see the file.
+    if [ $exit_code -eq 0 ]; then
+        rm -f "$tmp_out" "${tmp_out}.cpp"
     fi
 done <<< "$TEST_LIST"
 
