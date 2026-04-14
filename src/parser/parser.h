@@ -572,6 +572,12 @@ void register_comptime_builtins(ParserContext *ctx);
  * @brief Adds an instantiated function to the list.
  */
 void add_instantiated_func(ParserContext *ctx, ASTNode *fn);
+int check_duplicate_variants(ASTNode *v1, ASTNode *v2);
+void append_to_gen(char **gen, size_t *cap, const char *s);
+void append_to_gen_fmt(char **gen, size_t *cap, const char *fmt, ...);
+char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *content, int newline,
+                           const char *target, char ***used_syms, int *count, int check_symbols,
+                           int is_raw, int is_expr);
 
 /**
  * @brief Instantiates a generic struct/function.
@@ -642,10 +648,6 @@ ASTNode *parse_arrow_lambda_multi(ParserContext *ctx, Lexer *l, char **param_nam
 char *parse_and_convert_args(ParserContext *ctx, Lexer *l, char ***defaults_out,
                              ASTNode ***default_values_out, int *count_out, Type ***types_out,
                              char ***names_out, int *is_varargs_out, char ***ctype_overrides_out);
-
-char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *content, int newline,
-                           const char *target, char ***used_syms, int *used_count, int is_stmt,
-                           int is_raw);
 
 /**
  * @brief Scan build directives.
@@ -989,9 +991,6 @@ ASTNode *parse_return(ParserContext *ctx, Lexer *l);
  * @brief Processes a formatted string.
  */
 char *escape_c_string(const char *input);
-char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *content, int newline,
-                           const char *target, char ***used_syms, int *count, int check_symbols,
-                           int is_raw);
 
 /**
  * @brief Parses an assert statement.

@@ -1867,7 +1867,7 @@ ASTNode *parse_for(ParserContext *ctx, Lexer *l)
     return n;
 }
 
-static void append_to_gen(char **gen, size_t *cap, const char *s)
+void append_to_gen(char **gen, size_t *cap, const char *s)
 {
     size_t len = strlen(*gen);
     size_t slen = strlen(s);
@@ -1879,7 +1879,7 @@ static void append_to_gen(char **gen, size_t *cap, const char *s)
     strcat(*gen, s);
 }
 
-static void append_to_gen_fmt(char **gen, size_t *cap, const char *fmt, ...)
+void append_to_gen_fmt(char **gen, size_t *cap, const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
@@ -1902,16 +1902,25 @@ static void append_to_gen_fmt(char **gen, size_t *cap, const char *fmt, ...)
 
 char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *content, int newline,
                            const char *target, char ***used_syms, int *count, int check_symbols,
-                           int is_raw)
-
+                           int is_raw, int is_expr)
 {
     int saved_silent = ctx->silent_warnings;
     ctx->silent_warnings = !check_symbols;
+
+    static int fs_id_gen = 0;
+    int fs_id = fs_id_gen++;
 
     size_t gen_cap = 1024 * 32;
     char *gen = xmalloc(gen_cap);
     gen[0] = 0;
     append_to_gen(&gen, &gen_cap, "({ ");
+
+    if (is_expr)
+    {
+        append_to_gen_fmt(&gen, &gen_cap,
+                          "static char _fs_buf_%d[4096]; _fs_buf_%d[0]=0; char _fs_t_%d[1024]; ",
+                          fs_id, fs_id, fs_id);
+    }
 
     char *s = xstrdup(content);
     char *cur = s;
@@ -1943,7 +1952,14 @@ char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *conte
         if (brace > cur)
         {
             // Append text literal
-            append_to_gen_fmt(&gen, &gen_cap, "fprintf(%s, \"%%s\", \"", target);
+            if (is_expr)
+            {
+                append_to_gen_fmt(&gen, &gen_cap, "strcat(_fs_buf_%d, \"", fs_id);
+            }
+            else
+            {
+                append_to_gen_fmt(&gen, &gen_cap, "fprintf(%s, \"%%s\", \"", target);
+            }
 
             int seg_len = brace - cur;
             char *txt = xmalloc(seg_len + 1);
@@ -2210,15 +2226,36 @@ char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *conte
             // Explicit format: {x:%.2f}
             if (force_simple)
             {
-                append_to_gen_fmt(&gen, &gen_cap, "fprintf(%s, \"%%%s\", %s); ", target, fmt,
-                                  rw_expr);
+                if (is_expr)
+                {
+                    append_to_gen_fmt(&gen, &gen_cap,
+                                      "sprintf(_fs_t_%d, \"%%%s\", %s); strcat(_fs_buf_%d, "
+                                      "_fs_t_%d); ",
+                                      fs_id, fmt, rw_expr, fs_id, fs_id);
+                }
+                else
+                {
+                    append_to_gen_fmt(&gen, &gen_cap, "fprintf(%s, \"%%%s\", %s); ", target, fmt,
+                                      rw_expr);
+                }
             }
             else
             {
-                append_to_gen_fmt(&gen, &gen_cap,
-                                  "({ ZC_AUTO_INIT(_z_interp_val, %s); fprintf(%s, \"%%%s\", "
-                                  "_z_interp_val); _z_drop(_z_interp_val); }); ",
-                                  rw_expr, target, fmt);
+                if (is_expr)
+                {
+                    append_to_gen_fmt(&gen, &gen_cap,
+                                      "({ ZC_AUTO_INIT(_z_interp_val, %s); sprintf(_fs_t_%d, "
+                                      "\"%%%s\", _z_interp_val); strcat(_fs_buf_%d, _fs_t_%d); "
+                                      "_z_drop(_z_interp_val); }); ",
+                                      rw_expr, fs_id, fmt, fs_id, fs_id);
+                }
+                else
+                {
+                    append_to_gen_fmt(&gen, &gen_cap,
+                                      "({ ZC_AUTO_INIT(_z_interp_val, %s); fprintf(%s, \"%%%s\", "
+                                      "_z_interp_val); _z_drop(_z_interp_val); }); ",
+                                      rw_expr, target, fmt);
+                }
             }
         }
         else
@@ -2301,19 +2338,44 @@ char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *conte
                             const char *acc = is_p ? "->" : ".";
                             if (force_simple)
                             {
-                                append_to_gen_fmt(
-                                    &gen, &gen_cap,
-                                    "fprintf(%s, \"%%.*s\", (int)(%s)%slen, (%s)%sdata); ", target,
-                                    rw_expr, acc, rw_expr, acc);
+                                if (is_expr)
+                                {
+                                    append_to_gen_fmt(
+                                        &gen, &gen_cap,
+                                        "sprintf(_fs_t_%d, \"%%.*s\", (int)(%s)%slen, "
+                                        "(%s)%sdata); strcat(_fs_buf_%d, _fs_t_%d); ",
+                                        fs_id, rw_expr, acc, rw_expr, acc, fs_id, fs_id);
+                                }
+                                else
+                                {
+                                    append_to_gen_fmt(
+                                        &gen, &gen_cap,
+                                        "fprintf(%s, \"%%.*s\", (int)(%s)%slen, (%s)%sdata); ",
+                                        target, rw_expr, acc, rw_expr, acc);
+                                }
                             }
                             else
                             {
-                                append_to_gen_fmt(
-                                    &gen, &gen_cap,
-                                    "({ ZC_AUTO_INIT(_z_interp_val, %s); fprintf(%s, \"%%.*s\", "
-                                    "(int)(_z_interp_val)%slen, (_z_interp_val)%sdata); "
-                                    "_z_drop(_z_interp_val); }); ",
-                                    rw_expr, target, acc, acc);
+                                if (is_expr)
+                                {
+                                    append_to_gen_fmt(
+                                        &gen, &gen_cap,
+                                        "({ ZC_AUTO_INIT(_z_interp_val, %s); sprintf(_fs_t_%d, "
+                                        "\"%%.*s\", (int)(_z_interp_val)%slen, "
+                                        "(_z_interp_val)%sdata); strcat(_fs_buf_%d, "
+                                        "_fs_t_%d); _z_drop(_z_interp_val); }); ",
+                                        rw_expr, fs_id, acc, acc, fs_id, fs_id);
+                                }
+                                else
+                                {
+                                    append_to_gen_fmt(
+                                        &gen, &gen_cap,
+                                        "({ ZC_AUTO_INIT(_z_interp_val, %s); fprintf(%s, "
+                                        "\"%%.*s\", "
+                                        "(int)(_z_interp_val)%slen, (_z_interp_val)%sdata); "
+                                        "_z_drop(_z_interp_val); }); ",
+                                        rw_expr, target, acc, acc);
+                                }
                             }
                             goto next_segment;
                         }
@@ -2350,19 +2412,44 @@ char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *conte
                             const char *acc = is_p ? "->" : ".";
                             if (force_simple)
                             {
-                                append_to_gen_fmt(
-                                    &gen, &gen_cap,
-                                    "fprintf(%s, \"%%.*s\", (int)(%s)%slen, (%s)%sdata); ", target,
-                                    rw_expr, acc, rw_expr, acc);
+                                if (is_expr)
+                                {
+                                    append_to_gen_fmt(
+                                        &gen, &gen_cap,
+                                        "sprintf(_fs_t_%d, \"%%.*s\", (int)(%s)%slen, "
+                                        "(%s)%sdata); strcat(_fs_buf_%d, _fs_t_%d); ",
+                                        fs_id, rw_expr, acc, rw_expr, acc, fs_id, fs_id);
+                                }
+                                else
+                                {
+                                    append_to_gen_fmt(
+                                        &gen, &gen_cap,
+                                        "fprintf(%s, \"%%.*s\", (int)(%s)%slen, (%s)%sdata); ",
+                                        target, rw_expr, acc, rw_expr, acc);
+                                }
                             }
                             else
                             {
-                                append_to_gen_fmt(
-                                    &gen, &gen_cap,
-                                    "({ ZC_AUTO_INIT(_z_interp_val, %s); fprintf(%s, \"%%.*s\", "
-                                    "(int)(_z_interp_val)%slen, (_z_interp_val)%sdata); "
-                                    "_z_drop(_z_interp_val); }); ",
-                                    rw_expr, target, acc, acc);
+                                if (is_expr)
+                                {
+                                    append_to_gen_fmt(
+                                        &gen, &gen_cap,
+                                        "({ ZC_AUTO_INIT(_z_interp_val, %s); sprintf(_fs_t_%d, "
+                                        "\"%%.*s\", (int)(_z_interp_val)%slen, "
+                                        "(_z_interp_val)%sdata); strcat(_fs_buf_%d, "
+                                        "_fs_t_%d); _z_drop(_z_interp_val); }); ",
+                                        rw_expr, fs_id, acc, acc, fs_id, fs_id);
+                                }
+                                else
+                                {
+                                    append_to_gen_fmt(
+                                        &gen, &gen_cap,
+                                        "({ ZC_AUTO_INIT(_z_interp_val, %s); fprintf(%s, "
+                                        "\"%%.*s\", "
+                                        "(int)(_z_interp_val)%slen, (_z_interp_val)%sdata); "
+                                        "_z_drop(_z_interp_val); }); ",
+                                        rw_expr, target, acc, acc);
+                                }
                             }
                             goto next_segment;
                         }
@@ -2482,34 +2569,78 @@ char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *conte
                 {
                     if (force_simple)
                     {
-                        append_to_gen_fmt(&gen, &gen_cap,
-                                          "fprintf(%s, \"%%%s\", _z_bool_str(%s)); ", target,
-                                          format_spec + 1, rw_expr);
+                        if (is_expr)
+                        {
+                            append_to_gen_fmt(&gen, &gen_cap,
+                                              "sprintf(_fs_t_%d, \"%%%s\", _z_bool_str(%s)); "
+                                              "strcat(_fs_buf_%d, _fs_t_%d); ",
+                                              fs_id, format_spec + 1, rw_expr, fs_id, fs_id);
+                        }
+                        else
+                        {
+                            append_to_gen_fmt(&gen, &gen_cap,
+                                              "fprintf(%s, \"%%%s\", _z_bool_str(%s)); ", target,
+                                              format_spec + 1, rw_expr);
+                        }
                     }
                     else
                     {
-                        append_to_gen_fmt(
-                            &gen, &gen_cap,
-                            "({ ZC_AUTO_INIT(_z_interp_val, %s); fprintf(%s, \"%%%s\", "
-                            "_z_bool_str(_z_interp_val)); _z_drop(_z_interp_val); "
-                            "}); ",
-                            rw_expr, target, format_spec + 1);
+                        if (is_expr)
+                        {
+                            append_to_gen_fmt(
+                                &gen, &gen_cap,
+                                "({ ZC_AUTO_INIT(_z_interp_val, %s); sprintf(_fs_t_%d, "
+                                "\"%%%s\", _z_bool_str(_z_interp_val)); strcat(_fs_buf_%d, "
+                                "_fs_t_%d); _z_drop(_z_interp_val); }); ",
+                                rw_expr, fs_id, format_spec + 1, fs_id, fs_id);
+                        }
+                        else
+                        {
+                            append_to_gen_fmt(
+                                &gen, &gen_cap,
+                                "({ ZC_AUTO_INIT(_z_interp_val, %s); fprintf(%s, \"%%%s\", "
+                                "_z_bool_str(_z_interp_val)); _z_drop(_z_interp_val); "
+                                "}); ",
+                                rw_expr, target, format_spec + 1);
+                        }
                     }
                 }
                 else
                 {
                     if (force_simple)
                     {
-                        append_to_gen_fmt(&gen, &gen_cap, "fprintf(%s, \"%%%s\", %s); ", target,
-                                          format_spec + 1, rw_expr);
+                        if (is_expr)
+                        {
+                            append_to_gen_fmt(&gen, &gen_cap,
+                                              "sprintf(_fs_t_%d, \"%%%s\", %s); "
+                                              "strcat(_fs_buf_%d, _fs_t_%d); ",
+                                              fs_id, format_spec + 1, rw_expr, fs_id, fs_id);
+                        }
+                        else
+                        {
+                            append_to_gen_fmt(&gen, &gen_cap, "fprintf(%s, \"%%%s\", %s); ", target,
+                                              format_spec + 1, rw_expr);
+                        }
                     }
                     else
                     {
-                        append_to_gen_fmt(
-                            &gen, &gen_cap,
-                            "({ ZC_AUTO_INIT(_z_interp_val, %s); fprintf(%s, \"%%%s\", "
-                            "_z_interp_val); _z_drop(_z_interp_val); }); ",
-                            rw_expr, target, format_spec + 1);
+                        if (is_expr)
+                        {
+                            append_to_gen_fmt(
+                                &gen, &gen_cap,
+                                "({ ZC_AUTO_INIT(_z_interp_val, %s); sprintf(_fs_t_%d, "
+                                "\"%%%s\", _z_interp_val); strcat(_fs_buf_%d, _fs_t_%d); "
+                                "_z_drop(_z_interp_val); }); ",
+                                rw_expr, fs_id, format_spec + 1, fs_id, fs_id);
+                        }
+                        else
+                        {
+                            append_to_gen_fmt(
+                                &gen, &gen_cap,
+                                "({ ZC_AUTO_INIT(_z_interp_val, %s); fprintf(%s, \"%%%s\", "
+                                "_z_interp_val); _z_drop(_z_interp_val); }); ",
+                                rw_expr, target, format_spec + 1);
+                        }
                     }
                 }
             }
@@ -2520,34 +2651,82 @@ char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *conte
                 {
                     if (force_simple && !is_temporary)
                     {
-                        append_to_gen_fmt(&gen, &gen_cap, "fprintf(%s, \"%%s\", (char*)%s(%s%s)); ",
-                                          target, mangled_to_string, to_string_is_ptr ? "" : "&",
-                                          rw_expr);
+                        if (is_expr)
+                        {
+                            append_to_gen_fmt(&gen, &gen_cap,
+                                              "sprintf(_fs_t_%d, \"%%s\", (char*)%s(%s%s)); "
+                                              "strcat(_fs_buf_%d, _fs_t_%d); ",
+                                              fs_id, mangled_to_string, to_string_is_ptr ? "" : "&",
+                                              rw_expr, fs_id, fs_id);
+                        }
+                        else
+                        {
+                            append_to_gen_fmt(
+                                &gen, &gen_cap, "fprintf(%s, \"%%s\", (char*)%s(%s%s)); ", target,
+                                mangled_to_string, to_string_is_ptr ? "" : "&", rw_expr);
+                        }
                     }
                     else
                     {
-                        append_to_gen_fmt(
-                            &gen, &gen_cap,
-                            "({ ZC_AUTO_INIT(_z_interp_val, %s); fprintf(%s, \"%%s\", "
-                            "(char*)%s(%s_z_interp_val)); _z_drop(_z_interp_val); "
-                            "}); ",
-                            rw_expr, target, mangled_to_string, to_string_is_ptr ? "" : "&");
+                        if (is_expr)
+                        {
+                            append_to_gen_fmt(
+                                &gen, &gen_cap,
+                                "({ ZC_AUTO_INIT(_z_interp_val, %s); sprintf(_fs_t_%d, \"%%s\", "
+                                "(char*)%s(%s_z_interp_val)); strcat(_fs_buf_%d, _fs_t_%d); "
+                                "_z_drop(_z_interp_val); }); ",
+                                rw_expr, fs_id, mangled_to_string, to_string_is_ptr ? "" : "&",
+                                fs_id, fs_id);
+                        }
+                        else
+                        {
+                            append_to_gen_fmt(
+                                &gen, &gen_cap,
+                                "({ ZC_AUTO_INIT(_z_interp_val, %s); fprintf(%s, \"%%s\", "
+                                "(char*)%s(%s_z_interp_val)); _z_drop(_z_interp_val); "
+                                "}); ",
+                                rw_expr, target, mangled_to_string, to_string_is_ptr ? "" : "&");
+                        }
                     }
                 }
                 else
                 {
                     if (force_simple)
                     {
-                        append_to_gen_fmt(&gen, &gen_cap, "fprintf(%s, _z_str(%s), _z_arg(%s)); ",
-                                          target, rw_expr, rw_expr);
+                        if (is_expr)
+                        {
+                            append_to_gen_fmt(&gen, &gen_cap,
+                                              "sprintf(_fs_t_%d, _z_str(%s), _z_arg(%s)); "
+                                              "strcat(_fs_buf_%d, _fs_t_%d); ",
+                                              fs_id, rw_expr, rw_expr, fs_id, fs_id);
+                        }
+                        else
+                        {
+                            append_to_gen_fmt(&gen, &gen_cap,
+                                              "fprintf(%s, _z_str(%s), _z_arg(%s)); ", target,
+                                              rw_expr, rw_expr);
+                        }
                     }
                     else
                     {
-                        append_to_gen_fmt(&gen, &gen_cap,
-                                          "({ ZC_AUTO_INIT(_z_interp_val, %s); fprintf(%s, "
-                                          "_z_str(_z_interp_val), _z_arg(_z_interp_val)); "
-                                          "_z_drop(_z_interp_val); }); ",
-                                          rw_expr, target);
+                        if (is_expr)
+                        {
+                            append_to_gen_fmt(
+                                &gen, &gen_cap,
+                                "({ ZC_AUTO_INIT(_z_interp_val, %s); sprintf(_fs_t_%d, "
+                                "_z_str(_z_interp_val), _z_arg(_z_interp_val)); "
+                                "strcat(_fs_buf_%d, _fs_t_%d); "
+                                "_z_drop(_z_interp_val); }); ",
+                                rw_expr, fs_id, fs_id, fs_id);
+                        }
+                        else
+                        {
+                            append_to_gen_fmt(&gen, &gen_cap,
+                                              "({ ZC_AUTO_INIT(_z_interp_val, %s); fprintf(%s, "
+                                              "_z_str(_z_interp_val), _z_arg(_z_interp_val)); "
+                                              "_z_drop(_z_interp_val); }); ",
+                                              rw_expr, target);
+                        }
                     }
                 }
             }
@@ -2577,14 +2756,28 @@ char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *conte
 
     if (newline)
     {
-        append_to_gen_fmt(&gen, &gen_cap, "fprintf(%s, \"\\n\"); ", target);
+        if (is_expr)
+        {
+            append_to_gen_fmt(&gen, &gen_cap, "strcat(_fs_buf_%d, \"\\n\"); ", fs_id);
+        }
+        else
+        {
+            append_to_gen_fmt(&gen, &gen_cap, "fprintf(%s, \"\\n\"); ", target);
+        }
     }
-    else
+    else if (!is_expr)
     {
         append_to_gen(&gen, &gen_cap, "fflush(stdout); ");
     }
 
-    append_to_gen(&gen, &gen_cap, "0; })");
+    if (is_expr)
+    {
+        append_to_gen_fmt(&gen, &gen_cap, "_fs_buf_%d; })", fs_id);
+    }
+    else
+    {
+        append_to_gen(&gen, &gen_cap, "0; })");
+    }
 
     free(s);
     ctx->silent_warnings = saved_silent;
@@ -2795,7 +2988,7 @@ ASTNode *parse_statement(ParserContext *ctx, Lexer *l)
             char **used_syms = NULL;
             int used_count = 0;
             char *code = process_printf_sugar(ctx, next, inner, is_ln, "stdout", &used_syms,
-                                              &used_count, 1, (t.type == TOK_RAW_STRING));
+                                              &used_count, 1, (t.type == TOK_RAW_STRING), 0);
 
             if (next_type == TOK_SEMICOLON)
             {
@@ -3408,7 +3601,7 @@ ASTNode *parse_statement(ParserContext *ctx, Lexer *l)
             char **used_syms = NULL;
             int used_count = 0;
             char *code = process_printf_sugar(ctx, t, inner, is_ln, target, &used_syms, &used_count,
-                                              1, (t.type == TOK_RAW_STRING));
+                                              1, (t.type == TOK_RAW_STRING), 0);
             free(inner);
 
             if (lexer_peek(l).type == TOK_SEMICOLON)

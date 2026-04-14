@@ -1281,493 +1281,6 @@ char *escape_c_string(const char *input)
     return out;
 }
 
-static ASTNode *create_fstring_block(ParserContext *ctx, Token parent_token, char *content, int len)
-{
-    ASTNode *block = ast_create(NODE_BLOCK);
-    block->token = parent_token;
-    block->type_info = type_new(TYPE_STRING);
-    block->resolved_type = xstrdup("string");
-
-    ASTNode *head = NULL, *tail = NULL;
-
-    int fs_id = ctx->fstring_counter++;
-    ASTNode *decl_b = ast_create(NODE_RAW_STMT);
-    decl_b->token = parent_token;
-    char b_decl[128];
-    snprintf(b_decl, sizeof(b_decl), "static char _fs_buf_%d[4096]; _fs_buf_%d[0]=0;", fs_id,
-             fs_id);
-    decl_b->raw_stmt.content = xstrdup(b_decl);
-
-    if (!head)
-    {
-        head = decl_b;
-    }
-    else
-    {
-        tail->next = decl_b;
-    }
-    tail = decl_b;
-
-    ASTNode *decl_t = ast_create(NODE_RAW_STMT);
-    decl_t->token = parent_token;
-    char t_decl[64];
-    snprintf(t_decl, sizeof(t_decl), "char _fs_t_%d[128];", fs_id);
-    decl_t->raw_stmt.content = xstrdup(t_decl);
-
-    tail->next = decl_t;
-    tail = decl_t;
-
-    char *cur = content;
-    char *end = content + len;
-
-    int interp_count = 0;
-
-    while (cur < end)
-    {
-        char *brace = strchr(cur, '{');
-        while (brace && brace < end)
-        {
-            if (brace > cur + 1 && (brace[-1] == 'u' || brace[-1] == 'U') && brace[-2] == '\\')
-            {
-                brace = strchr(brace + 1, '{');
-            }
-            else
-            {
-                break;
-            }
-        }
-        // Check for double brace }} first
-        char *dbl_close = strstr(cur, "}}");
-
-        if (dbl_close && (!brace || dbl_close < brace))
-        {
-            // Check boundary
-            if (dbl_close >= end)
-            {
-                dbl_close = NULL;
-            }
-        }
-
-        if (dbl_close && (!brace || dbl_close < brace))
-        {
-            if (dbl_close > cur)
-            {
-                int seg_len = dbl_close - cur;
-                ASTNode *cat = ast_create(NODE_RAW_STMT);
-                cat->token = parent_token;
-                char *txt = xmalloc(seg_len + 1);
-                strncpy(txt, cur, seg_len);
-                txt[seg_len] = 0;
-                char *escaped = escape_c_string(txt);
-                cat->raw_stmt.content = xmalloc(strlen(escaped) + 64);
-                sprintf(cat->raw_stmt.content, "strcat(_fs_buf_%d, \"%s\");", fs_id, escaped);
-
-                tail->next = cat;
-                tail = cat;
-                free(escaped);
-                free(txt);
-            }
-            ASTNode *cat = ast_create(NODE_RAW_STMT);
-            cat->token = parent_token;
-            char cat_fs_brace[128];
-            snprintf(cat_fs_brace, sizeof(cat_fs_brace), "strcat(_fs_buf_%d, \"}\");", fs_id);
-            cat->raw_stmt.content = xstrdup(cat_fs_brace);
-
-            tail->next = cat;
-            tail = cat;
-            cur = dbl_close + 2;
-            continue;
-        }
-
-        if (!brace || brace >= end)
-        {
-            if (cur < end)
-            {
-                int seg_len = end - cur;
-                ASTNode *cat = ast_create(NODE_RAW_STMT);
-                cat->token = parent_token;
-                char *txt = xmalloc(seg_len + 1);
-                strncpy(txt, cur, seg_len);
-                txt[seg_len] = 0;
-                char *escaped = escape_c_string(txt);
-                cat->raw_stmt.content = xmalloc(strlen(escaped) + 64);
-                sprintf(cat->raw_stmt.content, "strcat(_fs_buf_%d, \"%s\");", fs_id, escaped);
-
-                tail->next = cat;
-                tail = cat;
-                free(escaped);
-                free(txt);
-            }
-            break;
-        }
-
-        if (brace > cur)
-        {
-            int seg_len = brace - cur;
-            ASTNode *cat = ast_create(NODE_RAW_STMT);
-            cat->token = parent_token;
-            char *txt = xmalloc(seg_len + 1);
-            strncpy(txt, cur, seg_len);
-            txt[seg_len] = 0;
-            char *escaped = escape_c_string(txt);
-            cat->raw_stmt.content = xmalloc(strlen(escaped) + 64);
-            sprintf(cat->raw_stmt.content, "strcat(_fs_buf_%d, \"%s\");", fs_id, escaped);
-
-            tail->next = cat;
-            tail = cat;
-            free(escaped);
-            free(txt);
-        }
-
-        if (brace + 1 < end && brace[1] == '{')
-        {
-            ASTNode *cat = ast_create(NODE_RAW_STMT);
-            cat->token = parent_token;
-            char cat_buf[128];
-            snprintf(cat_buf, sizeof(cat_buf), "strcat(_fs_buf_%d, \"{\");", fs_id);
-            cat->raw_stmt.content = xstrdup(cat_buf);
-
-            tail->next = cat;
-            tail = cat;
-            cur = brace + 2;
-            continue;
-        }
-
-        int depth = 0;
-        char *p = brace;
-        char *end_brace = NULL;
-        char *colon = NULL;
-
-        while (p < end)
-        {
-            if (*p == '{')
-            {
-                depth++;
-            }
-            else if (*p == '}')
-            {
-                depth--;
-                if (depth == 0)
-                {
-                    end_brace = p;
-                    break;
-                }
-            }
-            else if (depth == 1 && *p == ':' && !colon)
-            {
-                if ((p + 1) < end && *(p + 1) == ':')
-                {
-                    p++;
-                }
-                else
-                {
-                    colon = p;
-                }
-            }
-            p++;
-        }
-
-        if (!end_brace)
-        {
-            zpanic_at(parent_token, "Unclosed f-string brace");
-        }
-
-        char *expr_start = brace + 1;
-        char *expr_end = colon ? colon : end_brace;
-        int expr_len = (int)(expr_end - expr_start);
-        if (expr_len < 0)
-        {
-            zpanic_at(parent_token, "Internal error in f-string expression layout");
-        }
-        char *expr_str = xmalloc(expr_len + 1);
-        strncpy(expr_str, expr_start, expr_len);
-        expr_str[expr_len] = '\0';
-
-        Lexer sub_l;
-        lexer_init(&sub_l, expr_str);
-
-        // Sync line info
-        sub_l.line = parent_token.line;
-        const char *last_nl = NULL;
-        for (const char *c = parent_token.start; c < expr_start; c++)
-        {
-            if (*c == '\n')
-            {
-                sub_l.line++;
-                last_nl = c;
-            }
-        }
-
-        if (last_nl)
-        {
-            sub_l.col = (int)(expr_start - last_nl);
-        }
-        else
-        {
-            sub_l.col = parent_token.col + (int)(expr_start - parent_token.start);
-        }
-
-        int start_line = sub_l.line;
-        int start_col = sub_l.col;
-
-        // Check for common invalid starts before parsing
-        Token peek = lexer_peek(&sub_l);
-        int invalid_start = 0;
-
-        if (peek.type == TOK_OP)
-        {
-            // Check for =, ==, >=, <=, ., etc.
-            if (peek.len == 1 && (peek.start[0] == '=' || peek.start[0] == '.'))
-            {
-                invalid_start = 1;
-            }
-            else if (peek.len >= 2 &&
-                     (strncmp(peek.start, "==", 2) == 0 || strncmp(peek.start, ">=", 2) == 0 ||
-                      strncmp(peek.start, "<=", 2) == 0))
-            {
-                invalid_start = 1;
-            }
-        }
-        else if (peek.type == TOK_LANGLE || peek.type == TOK_RANGLE || peek.type == TOK_RBRACE ||
-                 peek.type == TOK_COLON || peek.type == TOK_COMMA)
-        {
-            invalid_start = 1;
-        }
-        else if (peek.type == TOK_IDENT)
-        {
-            // Check keywords if they are parsed as identifiers
-            if ((peek.len == 6 && strncmp(peek.start, "return", 6) == 0) ||
-                (peek.len == 5 && strncmp(peek.start, "yield", 5) == 0))
-            {
-                invalid_start = 1;
-            }
-        }
-
-        if (invalid_start)
-        {
-            char err_msg[MAX_ERROR_MSG_LEN];
-            snprintf(err_msg, sizeof(err_msg), "Invalid expression start in f-string: '%.*s'.",
-                     peek.len, peek.start);
-
-            const char *hints[] = {"braces in f-strings must be escaped with '{{' or '}}'",
-                                   "use a raw string literal (r\"...\") to disable interpolation",
-                                   NULL};
-            zpanic_with_hints(peek, err_msg, hints);
-        }
-
-        ASTNode *expr_node = parse_expression(ctx, &sub_l);
-
-        // Check for leftover tokens.
-        Token next = lexer_peek(&sub_l);
-        if (next.type != TOK_EOF && next.type != TOK_RBRACE && next.type != TOK_COLON)
-        {
-            if (next.type == TOK_COMMA)
-            {
-                const char *hints[] = {"Escape braces with '{{' and '}}' or use a raw string "
-                                       "(r\"...\") to disable interpolation",
-                                       NULL};
-                zpanic_with_hints(
-                    next, "Invalid expression in f-string. This looks like a regex quantifier.",
-                    hints);
-            }
-            else
-            {
-                // Use a temporary buffer for the token to ensure safe printing
-                char tok_buf[64];
-                int t_len = next.len < 63 ? next.len : 63;
-                strncpy(tok_buf, next.start, t_len);
-                tok_buf[t_len] = '\0';
-                if (next.len > 63)
-                {
-                    strcat(tok_buf, "...");
-                }
-
-                char err_msg[MAX_SHORT_MSG_LEN];
-                snprintf(err_msg, sizeof(err_msg),
-                         "Invalid expression in f-string: expected '}' or ':', found '%s'.",
-                         tok_buf);
-
-                const char *hints[] = {
-                    "braces in f-strings must be escaped with '{{' or '}}'",
-                    "use a raw string literal (r\"...\") to disable interpolation", NULL};
-                zpanic_with_hints(next, err_msg, hints);
-            }
-        }
-
-        char *fmt = NULL;
-        if (colon)
-        {
-            int fmt_len = end_brace - (colon + 1);
-            fmt = xmalloc(fmt_len + 1);
-            strncpy(fmt, colon + 1, fmt_len);
-            fmt[fmt_len] = 0;
-        }
-
-        if (expr_node && expr_node->type == NODE_EXPR_VAR)
-        {
-            ZenSymbol *sym = find_symbol_entry(ctx, expr_node->var_ref.name);
-            if (sym)
-            {
-                sym->is_used = 1;
-            }
-        }
-
-        char interp_val_name[64];
-        snprintf(interp_val_name, 64, "_z_fs_interp_%d_%d", fs_id, interp_count++);
-
-        infer_type(ctx, expr_node);
-        char *mangled_to_string = NULL;
-        int to_string_is_ptr = 0;
-        if (expr_node && expr_node->type_info)
-        {
-            Type *t = expr_node->type_info;
-            char *struct_name = NULL;
-            int is_ptr = 0;
-
-            if (t->kind == TYPE_STRUCT)
-            {
-                struct_name = t->name;
-            }
-            else if (t->kind == TYPE_POINTER && t->inner && t->inner->kind == TYPE_STRUCT)
-            {
-                struct_name = t->inner->name;
-                is_ptr = 1;
-            }
-
-            if (struct_name)
-            {
-                char mangled[512];
-                snprintf(mangled, 512, "%s__to_string", struct_name);
-                if (find_func(ctx, mangled))
-                {
-                    mangled_to_string = xstrdup(mangled);
-                    to_string_is_ptr = is_ptr;
-                }
-            }
-        }
-
-        if (mangled_to_string && !to_string_is_ptr)
-        {
-            // Use a temporary variable to ensure we have an lvalue for taking the address
-            ASTNode *tmp_decl = ast_create(NODE_VAR_DECL);
-            tmp_decl->var_decl.name = xstrdup(interp_val_name);
-            tmp_decl->var_decl.init_expr = expr_node;
-            tmp_decl->var_decl.type_info = expr_node->type_info;
-            tmp_decl->var_decl.type_str = type_to_string(expr_node->type_info);
-
-            tail->next = tmp_decl;
-            tail = tmp_decl;
-
-            ASTNode *val_ref = ast_create(NODE_EXPR_VAR);
-            val_ref->var_ref.name = xstrdup(interp_val_name);
-            expr_node = val_ref;
-        }
-
-        ASTNode *call_sprintf = ast_create(NODE_EXPR_CALL);
-        call_sprintf->token = peek;
-        ASTNode *callee = ast_create(NODE_EXPR_VAR);
-        callee->token = peek;
-        callee->var_ref.name = xstrdup("sprintf");
-        call_sprintf->call.callee = callee;
-
-        ASTNode *arg_t = ast_create(NODE_EXPR_VAR);
-        char t_name[64];
-        snprintf(t_name, sizeof(t_name), "_fs_t_%d", fs_id);
-        arg_t->var_ref.name = xstrdup(t_name);
-
-        ASTNode *arg_fmt = NULL;
-        if (fmt)
-        {
-            size_t fmt_len = strlen(fmt) + 3;
-            char *fmt_str = xmalloc(fmt_len);
-            snprintf(fmt_str, fmt_len, "%%%s", fmt);
-            arg_fmt = ast_create(NODE_EXPR_LITERAL);
-            arg_fmt->literal.type_kind = LITERAL_STRING;
-            arg_fmt->literal.string_val = fmt_str;
-            arg_fmt->type_info = type_new(TYPE_STRING);
-        }
-        else if (mangled_to_string)
-        {
-            // Set format to %s
-            arg_fmt = ast_create(NODE_EXPR_LITERAL);
-            arg_fmt->literal.type_kind = LITERAL_STRING;
-            arg_fmt->literal.string_val = xstrdup("%s");
-            arg_fmt->type_info = type_new(TYPE_STRING);
-
-            // Wrap expr_node in to_string() call
-            ASTNode *call_ts = ast_create(NODE_EXPR_CALL);
-            call_ts->token = expr_node->token;
-            ASTNode *ts_callee = ast_create(NODE_EXPR_VAR);
-            ts_callee->var_ref.name = mangled_to_string;
-            call_ts->call.callee = ts_callee;
-
-            ASTNode *arg = expr_node;
-            if (!to_string_is_ptr)
-            {
-                ASTNode *addr = ast_create(NODE_EXPR_UNARY);
-                addr->unary.op = xstrdup("&");
-                addr->unary.operand = expr_node;
-                arg = addr;
-            }
-            call_ts->call.args = arg;
-            expr_node = call_ts;
-        }
-        else
-        {
-            ASTNode *call_macro = ast_create(NODE_EXPR_CALL);
-            call_macro->token = peek;
-            ASTNode *macro_callee = ast_create(NODE_EXPR_VAR);
-            macro_callee->var_ref.name = xstrdup("_z_str");
-            call_macro->call.callee = macro_callee;
-
-            // Re-parse for macro argument
-            Lexer l2;
-            lexer_init(&l2, expr_start);
-            l2.line = start_line;
-            l2.col = start_col;
-            ASTNode *expr_copy = parse_expression(ctx, &l2);
-
-            call_macro->call.args = expr_copy;
-            arg_fmt = call_macro;
-        }
-
-        call_sprintf->call.args = arg_t;
-        arg_t->next = arg_fmt;
-        arg_fmt->next = expr_node;
-
-        tail->next = call_sprintf;
-        tail = call_sprintf;
-
-        // strcat(_fs_buf, _fs_t)
-        ASTNode *cat_t = ast_create(NODE_RAW_STMT);
-        cat_t->token = peek;
-        char cat_t_buf[128];
-        snprintf(cat_t_buf, sizeof(cat_t_buf), "strcat(_fs_buf_%d, _fs_t_%d);", fs_id, fs_id);
-        cat_t->raw_stmt.content = xstrdup(cat_t_buf);
-
-        tail->next = cat_t;
-        tail = cat_t;
-
-        cur = end_brace + 1;
-        if (fmt)
-        {
-            free(fmt);
-        }
-    }
-
-    ASTNode *ret_b = ast_create(NODE_RAW_STMT);
-    ret_b->token = parent_token;
-    char ret_buf[64];
-    snprintf(ret_buf, sizeof(ret_buf), "_fs_buf_%d;", fs_id);
-    ret_b->raw_stmt.content = xstrdup(ret_buf);
-
-    tail->next = ret_b;
-    tail = ret_b;
-
-    block->block.statements = head;
-    return block;
-}
-
 // Check if the suffix is a valid integer suffix
 static int is_valid_int_suffix(const char *s)
 {
@@ -1931,7 +1444,15 @@ static ASTNode *parse_string_literal(ParserContext *ctx, Token t)
 
     if (has_interpolation)
     {
-        ASTNode *node = create_fstring_block(ctx, t, content, str_len);
+        // Use safe, unified interpolation logic. is_raw=0, is_expr=1.
+        char *code = process_printf_sugar(ctx, t, content, 0, "stdout", NULL, NULL, 0, 0, 1);
+
+        ASTNode *node = ast_create(NODE_RAW_STMT);
+        node->token = t;
+        node->raw_stmt.content = code;
+        node->type_info = type_new(TYPE_STRING);
+        node->resolved_type = xstrdup("string");
+
         free(content);
         return node;
     }
@@ -1951,7 +1472,15 @@ static ASTNode *parse_string_literal(ParserContext *ctx, Token t)
 static ASTNode *parse_fstring_literal(ParserContext *ctx, Token t)
 {
     char *content = token_get_string_content(t);
-    ASTNode *node = create_fstring_block(ctx, t, content, (int)strlen(content));
+    // Use safe, unified interpolation logic. is_raw=0, is_expr=1.
+    char *code = process_printf_sugar(ctx, t, content, 0, "stdout", NULL, NULL, 0, 0, 1);
+
+    ASTNode *node = ast_create(NODE_RAW_STMT);
+    node->token = t;
+    node->raw_stmt.content = code;
+    node->type_info = type_new(TYPE_STRING);
+    node->resolved_type = xstrdup("string");
+
     free(content);
     return node;
 }
@@ -5256,7 +4785,7 @@ ASTNode *parse_expr_prec(ParserContext *ctx, Lexer *l, Precedence min_prec)
 
             // Reuse printf sugar to generate the prompt print
             char *print_code =
-                process_printf_sugar(ctx, t_str, inner, 0, "stdout", NULL, NULL, 1, is_raw);
+                process_printf_sugar(ctx, t_str, inner, 0, "stdout", NULL, NULL, 1, is_raw, 0);
             free(inner);
 
             // Checks for (args...) suffix for SCAN mode
@@ -5521,8 +5050,8 @@ ASTNode *parse_expr_prec(ParserContext *ctx, Lexer *l, Precedence min_prec)
                 newline = 0;
             }
 
-            char *code =
-                process_printf_sugar(ctx, t_str, inner, newline, "stderr", NULL, NULL, 1, is_raw);
+            char *code = process_printf_sugar(ctx, t_str, inner, newline, "stderr", NULL, NULL, 1,
+                                              is_raw, 0);
             free(inner);
 
             ASTNode *n = ast_create(NODE_RAW_STMT);
