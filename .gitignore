@@ -1,4 +1,7 @@
 obj/
+obj-*/
+obj.ape/
+bin/
 zc
 result
 out.c
