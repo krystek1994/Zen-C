@@ -405,6 +405,8 @@ void codegen_expression(ParserContext *ctx, ASTNode *node, FILE *out)
         return;
     }
 
+    RECURSION_GUARD_TOKEN(ctx, node->token, );
+
     switch (node->type)
     {
     case NODE_MATCH:
@@ -773,6 +775,7 @@ void codegen_expression(ParserContext *ctx, ASTNode *node, FILE *out)
                         codegen_expression(ctx, target, out);
                         fprintf(out, ".len");
                     }
+                    RECURSION_EXIT(ctx);
                     return;
                 }
             }
@@ -832,6 +835,7 @@ void codegen_expression(ParserContext *ctx, ASTNode *node, FILE *out)
                             arg_idx++;
                         }
                         fprintf(out, ")");
+                        RECURSION_EXIT(ctx);
                         return;
                     }
                 }
@@ -975,10 +979,10 @@ void codegen_expression(ParserContext *ctx, ASTNode *node, FILE *out)
                     char *call_base = mangled_base;
 
                     int need_cast = 0;
-                    char mixin_func_base[2048];
+                    char mixin_func_base[MAX_MANGLED_NAME_LEN * 2];
                     snprintf(mixin_func_base, sizeof(mixin_func_base), "%s__%s", call_base, method);
                     char *mixin_func_name_ptr = merge_underscores(mixin_func_base);
-                    char mixin_func_name[2048];
+                    char mixin_func_name[MAX_MANGLED_NAME_LEN * 2];
                     strncpy(mixin_func_name, mixin_func_name_ptr, sizeof(mixin_func_name) - 1);
                     mixin_func_name[sizeof(mixin_func_name) - 1] = 0;
                     free(mixin_func_name_ptr);
@@ -1114,6 +1118,7 @@ void codegen_expression(ParserContext *ctx, ASTNode *node, FILE *out)
                 }
                 free(clean);
                 free(type);
+                RECURSION_EXIT(ctx);
                 return;
             }
             if (type)
@@ -1130,6 +1135,7 @@ void codegen_expression(ParserContext *ctx, ASTNode *node, FILE *out)
             if (def && def->type == NODE_STRUCT)
             {
                 fprintf(out, "(struct %s){0}", node->call.callee->var_ref.name);
+                RECURSION_EXIT(ctx);
                 return;
             }
         }
@@ -1393,6 +1399,7 @@ void codegen_expression(ParserContext *ctx, ASTNode *node, FILE *out)
         if (node->member.target->type_info && node->member.target->type_info->kind == TYPE_VECTOR)
         {
             codegen_expression(ctx, node->member.target, out);
+            RECURSION_EXIT(ctx);
             return;
         }
 
@@ -2453,6 +2460,7 @@ void codegen_expression(ParserContext *ctx, ASTNode *node, FILE *out)
     default:
         break;
     }
+    RECURSION_EXIT(ctx);
 }
 
 void codegen_expression_bare(ParserContext *ctx, ASTNode *node, FILE *out)
@@ -2461,6 +2469,8 @@ void codegen_expression_bare(ParserContext *ctx, ASTNode *node, FILE *out)
     {
         return;
     }
+
+    RECURSION_GUARD_TOKEN(ctx, node->token, );
 
     if (node->type == NODE_EXPR_BINARY)
     {
@@ -2476,6 +2486,7 @@ void codegen_expression_bare(ParserContext *ctx, ASTNode *node, FILE *out)
             codegen_expression(ctx, node->binary.left, out);
             fprintf(out, " %s ", op);
             codegen_expression(ctx, node->binary.right, out);
+            RECURSION_EXIT(ctx);
             return;
         }
     }
@@ -2486,15 +2497,18 @@ void codegen_expression_bare(ParserContext *ctx, ASTNode *node, FILE *out)
         {
             codegen_expression(ctx, node->unary.operand, out);
             fprintf(out, "++");
+            RECURSION_EXIT(ctx);
             return;
         }
         if (strcmp(node->unary.op, "_post--") == 0)
         {
             codegen_expression(ctx, node->unary.operand, out);
             fprintf(out, "--");
+            RECURSION_EXIT(ctx);
             return;
         }
     }
 
     codegen_expression(ctx, node, out);
+    RECURSION_EXIT(ctx);
 }

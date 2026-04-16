@@ -1,3 +1,4 @@
+#include "parser.h"
 #include "../codegen/codegen.h"
 
 int check_opaque_alias_compat(ParserContext *ctx, Type *a, Type *b)
@@ -7,11 +8,14 @@ int check_opaque_alias_compat(ParserContext *ctx, Type *a, Type *b)
         return 0;
     }
 
+    RECURSION_GUARD(ctx, NULL, 0); // null lexer, return 0 on fail
+
     int a_is_opaque = (a->kind == TYPE_ALIAS && a->alias.is_opaque_alias);
     int b_is_opaque = (b->kind == TYPE_ALIAS && b->alias.is_opaque_alias);
 
     if (!a_is_opaque && !b_is_opaque)
     {
+        RECURSION_EXIT(ctx);
         return 1;
     }
 
@@ -20,8 +24,11 @@ int check_opaque_alias_compat(ParserContext *ctx, Type *a, Type *b)
         if (a->alias.alias_defined_in_file && g_current_filename &&
             strcmp(a->alias.alias_defined_in_file, g_current_filename) == 0)
         {
-            return check_opaque_alias_compat(ctx, a->inner, b);
+            int res = check_opaque_alias_compat(ctx, a->inner, b);
+            RECURSION_EXIT(ctx);
+            return res;
         }
+        RECURSION_EXIT(ctx);
         return 0;
     }
 
@@ -30,11 +37,15 @@ int check_opaque_alias_compat(ParserContext *ctx, Type *a, Type *b)
         if (b->alias.alias_defined_in_file && g_current_filename &&
             strcmp(b->alias.alias_defined_in_file, g_current_filename) == 0)
         {
-            return check_opaque_alias_compat(ctx, a, b->inner);
+            int res = check_opaque_alias_compat(ctx, a, b->inner);
+            RECURSION_EXIT(ctx);
+            return res;
         }
+        RECURSION_EXIT(ctx);
         return 0;
     }
 
+    RECURSION_EXIT(ctx);
     return 0;
 }
 

@@ -359,6 +359,25 @@ struct ParserContext
     struct MoveState *move_state;
 };
 
+// Recursion Safety
+#define MAX_RECURSION_DEPTH 256
+
+#define RECURSION_GUARD(ctx, l, ret)                                                               \
+    if (++((ctx)->recursion_depth) > MAX_RECURSION_DEPTH)                                          \
+    {                                                                                              \
+        zpanic_at(lexer_peek(l), "Recursion limit exceeded");                                      \
+        return ret;                                                                                \
+    }
+
+#define RECURSION_GUARD_TOKEN(ctx, tok, ret)                                                       \
+    if (++((ctx)->recursion_depth) > MAX_RECURSION_DEPTH)                                          \
+    {                                                                                              \
+        zpanic_at(tok, "Recursion limit exceeded");                                                \
+        return ret;                                                                                \
+    }
+
+#define RECURSION_EXIT(ctx) ((ctx)->recursion_depth)--
+
 typedef struct TypeUsage
 {
     char *name;

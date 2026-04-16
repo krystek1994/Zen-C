@@ -330,8 +330,9 @@ char *infer_type(ParserContext *ctx, ASTNode *node)
                     base += 7;
                 }
 
-                char func_base[MAX_FUNC_NAME_LEN];
-                sprintf(func_base, "%s__%s", base, node->call.callee->member.field);
+                char func_base[MAX_MANGLED_NAME_LEN];
+                snprintf(func_base, sizeof(func_base), "%s__%s", base,
+                         node->call.callee->member.field);
                 char *func_name = merge_underscores(func_base);
 
                 FuncSig *sig = find_func(ctx, func_name);
@@ -997,6 +998,13 @@ int emit_move_invalidation(ParserContext *ctx, ASTNode *node, FILE *out)
 // Emits expression, wrapping it in a move-invalidation block if it's a consuming variable usage
 void codegen_expression_with_move(ParserContext *ctx, ASTNode *node, FILE *out)
 {
+    if (!node)
+    {
+        return;
+    }
+
+    RECURSION_GUARD_TOKEN(ctx, node->token, );
+
     if (node && (node->type == NODE_EXPR_VAR || node->type == NODE_EXPR_MEMBER))
     {
         // Re-use infer logic to see if we need invalidation
@@ -1057,10 +1065,12 @@ void codegen_expression_with_move(ParserContext *ctx, ASTNode *node, FILE *out)
                 emit_move_invalidation(ctx, node, out);
                 fprintf(out, "; _mv; })");
             }
+            RECURSION_EXIT(ctx);
             return;
         }
     }
     codegen_expression(ctx, node, out);
+    RECURSION_EXIT(ctx);
 }
 
 int is_struct_return_type(const char *ret_type)

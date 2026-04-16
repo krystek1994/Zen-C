@@ -1649,7 +1649,7 @@ void lsp_signature_help(const char *uri, int line, int col, int id)
                         cJSON *sigs = cJSON_CreateArray();
                         cJSON *sig = cJSON_CreateObject();
 
-                        char label[2048];
+                        char label[4096];
                         char params[MAX_ERROR_MSG_LEN] = "";
                         int first = 1;
                         for (int i = 0; i < fn->total_args; i++)
