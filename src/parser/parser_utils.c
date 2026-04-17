@@ -132,7 +132,7 @@ void try_parse_macro_const(ParserContext *ctx, const char *content)
         if (!existing)
         {
             // Add to symbol table
-            add_symbol(ctx, n, "int", type_new(TYPE_INT)); // Placeholder type
+            add_symbol_with_token(ctx, n, "int", type_new(TYPE_INT), name); // Placeholder type
             // find_symbol_entry to set properties
             ZenSymbol *sym = find_symbol_entry(ctx, n);
             if (sym)
@@ -884,7 +884,7 @@ void add_to_struct_list(ParserContext *ctx, ASTNode *node)
 }
 
 void register_type_alias(ParserContext *ctx, const char *alias, const char *original,
-                         Type *type_info, int is_opaque, const char *defined_in_file)
+                         Type *type_info, int is_opaque, const char *defined_in_file, Token tok)
 {
     // In LSP mode, check for existing type alias to avoid duplicates
     if (g_config.mode_lsp)
@@ -929,6 +929,7 @@ void register_type_alias(ParserContext *ctx, const char *alias, const char *orig
     {
         sym->kind = SYM_ALIAS;
     }
+    sym->decl_token = tok;
     sym->data.alias.original_type = xstrdup(original);
     sym->type_info = type_info;
     register_symbol_to_lsp(ctx, sym);
@@ -1281,7 +1282,7 @@ void register_slice(ParserContext *ctx, const char *type)
     snprintf(legacy_name, sizeof(legacy_name), "Slice_%s", type);
     if (strcmp(slice_name, legacy_name) != 0)
     {
-        register_type_alias(ctx, legacy_name, slice_name, NULL, 0, NULL);
+        register_type_alias(ctx, legacy_name, slice_name, NULL, 0, NULL, (Token){0});
     }
 }
 

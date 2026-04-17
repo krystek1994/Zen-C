@@ -70,4 +70,7 @@ void misra_check_union(TypeChecker *tc, Token token);
 void misra_check_iteration_termination(TypeChecker *tc, Token token);
 void misra_check_stdarg(TypeChecker *tc, Token token);
 
+// Section 2: Unused Code
+void misra_audit_unused_symbols(struct TypeChecker *tc);
+
 #endif // PLATFORM_MISRA_H

@@ -814,3 +814,38 @@ void misra_check_stdarg(TypeChecker *tc, Token token)
     }
     tc_error(tc, token, "MISRA Rule 17.1");
 }
+
+void misra_audit_unused_symbols(TypeChecker *tc)
+{
+    if (!g_config.misra_mode || !tc->pctx->global_scope)
+    {
+        return;
+    }
+
+    ZenSymbol *sym = tc->pctx->global_scope->symbols;
+    while (sym)
+    {
+        // Skip exported symbols, underscored symbols, and special names like 'main'
+        // Also skip built-ins (line 0)
+        if (!sym->is_used && !sym->is_export && sym->name && sym->name[0] != '_' &&
+            0 != strcmp(sym->name, "main") && sym->decl_token.line != 0)
+        {
+            switch (sym->kind)
+            {
+            case SYM_ALIAS:
+                tc_error(tc, sym->decl_token, "MISRA Rule 2.3");
+                break;
+            case SYM_STRUCT:
+            case SYM_ENUM:
+                tc_error(tc, sym->decl_token, "MISRA Rule 2.4");
+                break;
+            case SYM_CONSTANT:
+                tc_error(tc, sym->decl_token, "MISRA Rule 2.5");
+                break;
+            default:
+                break;
+            }
+        }
+        sym = sym->next;
+    }
+}

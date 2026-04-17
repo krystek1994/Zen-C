@@ -202,7 +202,74 @@ static void tc_add_symbol(TypeChecker *tc, const char *name, Type *type, Token t
 
 static ZenSymbol *tc_lookup(TypeChecker *tc, const char *name)
 {
-    return symbol_lookup(tc->pctx->current_scope, name);
+    ZenSymbol *sym = symbol_lookup(tc->pctx->current_scope, name);
+    if (sym)
+    {
+        sym->is_used = 1;
+    }
+    return sym;
+}
+
+static void mark_type_as_used(TypeChecker *tc, Type *t)
+{
+    if (!t)
+    {
+        return;
+    }
+
+    // Unroll pointers, arrays, vectors
+    Type *curr = t;
+    while (curr &&
+           (curr->kind == TYPE_POINTER || curr->kind == TYPE_ARRAY || curr->kind == TYPE_VECTOR))
+    {
+        curr = curr->inner;
+    }
+
+    if (!curr)
+    {
+        return;
+    }
+
+    if (curr->kind == TYPE_STRUCT || curr->kind == TYPE_ENUM)
+    {
+        if (curr->name)
+        {
+            ZenSymbol *sym =
+                symbol_lookup_kind(tc->pctx->global_scope, curr->name,
+                                   (curr->kind == TYPE_STRUCT) ? SYM_STRUCT : SYM_ENUM);
+            if (sym)
+            {
+                sym->is_used = 1;
+            }
+        }
+    }
+    else if (curr->kind == TYPE_ALIAS)
+    {
+        if (curr->name)
+        {
+            ZenSymbol *sym = symbol_lookup_kind(tc->pctx->global_scope, curr->name, SYM_ALIAS);
+            if (sym)
+            {
+                sym->is_used = 1;
+            }
+        }
+    }
+
+    // Generic arguments
+    for (int i = 0; i < curr->arg_count; i++)
+    {
+        mark_type_as_used(tc, curr->args[i]);
+    }
+
+    // Function type return and args
+    if (curr->kind == TYPE_FUNCTION)
+    {
+        mark_type_as_used(tc, curr->inner);
+        for (int i = 0; i < curr->arg_count; i++)
+        {
+            mark_type_as_used(tc, curr->args[i]);
+        }
+    }
 }
 
 // Internal MISRA helpers moved to platform/misra.c
@@ -1384,6 +1451,9 @@ static void check_var_decl(TypeChecker *tc, ASTNode *node, int depth)
         misra_check_pointer_nesting(tc, node->var_decl.type_info, node->token);
     }
 
+    // MISRA: Mark type as used
+    mark_type_as_used(tc, node->var_decl.type_info);
+
     if (node->var_decl.init_expr)
     {
         if (node->type_info && node->var_decl.init_expr->type == NODE_LAMBDA)
@@ -1524,6 +1594,15 @@ static void check_function(TypeChecker *tc, ASTNode *node, int depth)
         return;
     }
     misra_check_param_nesting(tc, node);
+    // Mark arg types as used
+    for (int i = 0; i < node->func.arg_count; i++)
+    {
+        mark_type_as_used(tc, node->func.arg_types[i]);
+    }
+
+    // Mark return type as used
+    mark_type_as_used(tc, node->func.ret_type_info);
+
     tc->current_func = node;
     tc_enter_scope(tc);
 
@@ -1714,6 +1793,9 @@ static void check_struct_init(TypeChecker *tc, ASTNode *node, int depth)
         return;
     }
     RECURSION_GUARD_TOKEN(tc->pctx, node->token, );
+
+    // MISRA: Mark struct type as used
+    mark_type_as_used(tc, node->type_info);
 
     // Find struct definition
     ASTNode *def = find_struct_def(tc->pctx, node->struct_init.struct_name);
@@ -2703,6 +2785,7 @@ static void check_node(TypeChecker *tc, ASTNode *node, int depth)
                 }
             }
             node->type_info = target_type;
+            mark_type_as_used(tc, target_type);
         }
         break;
     case NODE_EXPR_ARRAY_LITERAL:
@@ -3121,6 +3204,11 @@ int check_program(ParserContext *ctx, ASTNode *root)
     {
         move_state_free(ctx->move_state);
         ctx->move_state = NULL;
+    }
+
+    if (g_config.misra_mode)
+    {
+        misra_audit_unused_symbols(&tc);
     }
 
     if (tc.error_count > 0)

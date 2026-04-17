@@ -4070,7 +4070,7 @@ void try_parse_c_struct_decl(ParserContext *ctx, const char *line)
                 char *name = xmalloc(name_len + 1);
                 strncpy(name, name_start, name_len);
                 name[name_len] = '\0';
-                register_type_alias(ctx, name, name, NULL, 1, NULL);
+                register_type_alias(ctx, name, name, NULL, 1, NULL, (Token){0});
                 register_extern_symbol(ctx, name);
                 free(name);
             }
@@ -4114,7 +4114,7 @@ void try_parse_c_struct_decl(ParserContext *ctx, const char *line)
         const char *c_keyword = is_union ? "union" : "struct";
         char *c_type = xmalloc(strlen(c_keyword) + 1 + tag_len + 1);
         sprintf(c_type, "%s %s", c_keyword, tag_name);
-        register_type_alias(ctx, tag_name, c_type, NULL, 1, NULL);
+        register_type_alias(ctx, tag_name, c_type, NULL, 1, NULL, (Token){0});
         register_extern_symbol(ctx, tag_name);
         free(c_type);
     }

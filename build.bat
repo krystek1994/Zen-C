@@ -38,6 +38,7 @@ set SRCS=src\main.c ^
  src\platform\os.c ^
  src\platform\console.c ^
  src\platform\dylib.c ^
+ src\platform\misra.c ^
  src\utils\config.c ^
  src\diagnostics\diagnostics.c ^
  src\lexer\token.c ^

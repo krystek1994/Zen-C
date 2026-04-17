@@ -1126,6 +1126,7 @@ ASTNode *parse_struct(ParserContext *ctx, Lexer *l, int is_union, int is_opaque,
     }
 
     ASTNode *node = ast_create(NODE_STRUCT);
+    node->token = name_token;
     add_to_struct_list(ctx, node);
 
     node->strct.name = name;
@@ -1382,6 +1383,7 @@ ASTNode *parse_enum(ParserContext *ctx, Lexer *l)
     }
 
     ASTNode *node = ast_create(NODE_ENUM);
+    node->token = n;
     node->enm.name = ename;
 
     node->enm.variants = h;

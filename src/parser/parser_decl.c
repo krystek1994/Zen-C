@@ -194,8 +194,8 @@ ASTNode *parse_function(ParserContext *ctx, Lexer *l, int is_async, int is_exter
         {
             // Check if unused and not prefixed with '_' (conventional ignore)
             // also ignore 'self' as it is often mandated by traits
-            if (!sym->is_used && sym->name[0] != '_' && strcmp(sym->name, "self") != 0 &&
-                strcmp(name, "main") != 0)
+            if (!sym->is_used && !g_config.misra_mode && sym->name[0] != '_' &&
+                strcmp(sym->name, "self") != 0 && strcmp(name, "main") != 0)
             {
                 warn_unused_parameter(sym->decl_token, sym->name, name);
             }
@@ -869,10 +869,11 @@ ASTNode *parse_def(ParserContext *ctx, Lexer *l)
     type_obj->is_const = 1;
 
     // Use is_def flag for manifest constants
-    add_symbol(ctx, ns, type_str ? type_str : "unknown", type_obj);
+    add_symbol_with_token(ctx, ns, type_str ? type_str : "unknown", type_obj, n);
     ZenSymbol *sym_entry = find_symbol_entry(ctx, ns);
     if (sym_entry)
     {
+        sym_entry->kind = SYM_CONSTANT;
         sym_entry->is_def = 1;
         // is_const_value set only if literal
     }
@@ -979,7 +980,7 @@ ASTNode *parse_type_alias(ParserContext *ctx, Lexer *l, int is_opaque)
     node->type_alias.defined_in_file = g_current_filename ? xstrdup(g_current_filename) : NULL;
 
     register_type_alias(ctx, node->type_alias.alias, o, t, is_opaque,
-                        node->type_alias.defined_in_file);
+                        node->type_alias.defined_in_file, n);
 
     return node;
 }
