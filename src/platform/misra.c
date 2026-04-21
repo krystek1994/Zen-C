@@ -598,7 +598,16 @@ void misra_check_function_return_usage(TypeChecker *tc, ASTNode *node)
         Type *rt = resolve_alias(node->type_info);
         if (rt->kind != TYPE_VOID)
         {
-            tc_error(tc, node->token, "MISRA Rule 17.7");
+            if (rt->kind == TYPE_STRUCT && rt->name &&
+                (strstr(rt->name, "Result") || strstr(rt->name, "Option") ||
+                 strstr(rt->name, "Error")))
+            {
+                tc_error(tc, node->token, "MISRA Dir 4.7: error information is not tested");
+            }
+            else
+            {
+                tc_error(tc, node->token, "MISRA Rule 17.7");
+            }
         }
     }
 }
@@ -1453,5 +1462,82 @@ void misra_check_file_dereference(struct TypeChecker *tc, struct Type *type, Tok
         {
             tc_error(tc, tok, "MISRA Rule 22.5: FILE object should not be dereferenced");
         }
+    }
+}
+
+#include <ctype.h>
+
+static void canonicalize_ambiguous_chars(const char *src, char *dst, size_t dest_size)
+{
+    size_t i = 0;
+    while (src[i] && i < dest_size - 1)
+    {
+        char c = src[i];
+        if (c == 'l' || c == 'I')
+        {
+            c = '1';
+        }
+        else if (c == 'O')
+        {
+            c = '0';
+        }
+        else if (c == 'S')
+        {
+            c = '5';
+        }
+        else if (c == 'Z')
+        {
+            c = '2';
+        }
+        else if (c == 'n')
+        {
+            c = 'h';
+        }
+        else if (c == 'B')
+        {
+            c = '8';
+        }
+        dst[i] = tolower((unsigned char)c);
+        i++;
+    }
+    dst[i] = '\0';
+}
+
+void misra_check_typographic_ambiguity(struct TypeChecker *tc, const char *new_name, Token loc)
+{
+    if (!g_config.misra_mode || !tc || !tc->pctx || !new_name)
+    {
+        return;
+    }
+
+    char new_canon[256];
+    canonicalize_ambiguous_chars(new_name, new_canon, sizeof(new_canon));
+
+    Scope *s = tc->pctx->current_scope;
+    while (s)
+    {
+        ZenSymbol *sym = s->symbols;
+        while (sym)
+        {
+            // Do not compare against itself (though initially it shouldn't be listed yet)
+            if (sym->name && strcmp(sym->name, new_name) != 0)
+            {
+                char exist_canon[256];
+                canonicalize_ambiguous_chars(sym->name, exist_canon, sizeof(exist_canon));
+
+                if (strcmp(new_canon, exist_canon) == 0)
+                {
+                    char msg[512];
+                    snprintf(
+                        msg, sizeof(msg),
+                        "MISRA Dir 4.5: identifier '%s' is typographically ambiguous with '%s'",
+                        new_name, sym->name);
+                    tc_error(tc, loc, msg);
+                    return; // Warn once
+                }
+            }
+            sym = sym->next;
+        }
+        s = s->parent;
     }
 }

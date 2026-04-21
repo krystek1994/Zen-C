@@ -102,4 +102,9 @@ void misra_check_reserved_identifier(struct TypeChecker *tc, const char *name, T
 void misra_check_banned_function(struct TypeChecker *tc, const char *name, Token tok);
 void misra_check_file_dereference(struct TypeChecker *tc, struct Type *type, Token tok);
 
+// Phase 3 MISRA
+void misra_check_evaluation_order(struct TypeChecker *tc, struct ASTNode *expr);
+void misra_check_error_tested(struct TypeChecker *tc, struct ASTNode *stmt);
+void misra_check_typographic_ambiguity(struct TypeChecker *tc, const char *new_name, Token loc);
+
 #endif // PLATFORM_MISRA_H

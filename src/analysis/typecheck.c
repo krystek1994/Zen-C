@@ -404,6 +404,7 @@ static void tc_add_symbol(TypeChecker *tc, const char *name, Type *type, Token t
     if (g_config.misra_mode)
     {
         misra_check_shadowing(tc, name, t);
+        misra_check_typographic_ambiguity(tc, name, t);
     }
     add_symbol_with_token(tc->pctx, name, NULL, type, t, 0);
     ZenSymbol *sym = symbol_lookup(tc->pctx->current_scope, name);
