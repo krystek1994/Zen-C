@@ -46,17 +46,21 @@ jobs:
           - name: Linux GCC
             os: ubuntu-latest
             cc: gcc
+            zc_has_jit: 1
           - name: Linux Clang
             os: ubuntu-latest
             cc: clang
+            zc_has_jit: 1
           - name: Linux Zig CC
             os: ubuntu-latest
             cc: zig cc
             setup_zig: true
+            zc_has_jit: 1
           - name: Linux TCC
             os: ubuntu-latest
             cc: tcc
             install_tcc: true
+            zc_has_jit: 1
           - name: macOS
             os: macos-15-intel
             cc: cc # System default (usually clang)
@@ -92,7 +96,7 @@ jobs:
     - name: Build
       shell: bash
       run: |
-        export ZC_HAS_JIT=${{ matrix.zc_has_jit == 0 && 0 || 1 }}
+        export ZC_HAS_JIT=${{ matrix.zc_has_jit }}
         if [ "${{ matrix.cc }}" = "zig cc" ]; then
            make ZC_HAS_JIT=$ZC_HAS_JIT
         elif [ "${{ runner.os }}" = "Windows" ]; then
