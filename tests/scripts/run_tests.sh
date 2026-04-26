@@ -7,6 +7,7 @@
 #   --cpp                   Compile all tests in C++ mode
 #   --cc <compiler>         Use a specific C compiler
 #   --check                 Enable typechecking
+#   --no-source             Don't print generated source code on failure
 #   -- file1.zc file2.zc    Any file listed after postfix `--` will be run
 #                           If empty, scan for and run all tests
 #
@@ -38,6 +39,11 @@ FAILED_TESTS=""
 CC_NAME="gcc (default)"
 USE_TYPECHECK=0
 USE_CPP=0
+SHOW_SOURCE=1
+if [ "$ZC_TEST_NO_SOURCE" = "1" ]; then
+    SHOW_SOURCE=0
+fi
+
 TEST_FILES=()
 sys_type=$(uname -s)
 sys_arch=$(uname -m)
@@ -65,6 +71,10 @@ for arg in "$@"; do
     fi
     if [ "$arg" = "--cpp" ]; then
         USE_CPP=1
+    fi
+    if [ "$arg" = "--no-source" ]; then
+        SHOW_SOURCE=0
+        continue
     fi
 
     zc_args+=("$arg")
@@ -214,16 +224,25 @@ while read -r test_file; do
             if [ -f "$tmp_out" ]; then
                 echo "Program output preserved at: $tmp_out"
             fi
-            if [ -f "$tmp_out.c" ]; then
-                echo "Generated C source preserved at: $tmp_out.c"
-                echo "--- Source Begin ---"
-                cat "$tmp_out.c"
-                echo "--- Source End ---"
-            elif [ -f "$tmp_out.cpp" ]; then
-                echo "Generated C++ source preserved at: $tmp_out.cpp"
-                echo "--- Source Begin ---"
-                cat "$tmp_out.cpp"
-                echo "--- Source End ---"
+            if [ $SHOW_SOURCE -eq 1 ]; then
+                if [ -f "$tmp_out.c" ]; then
+                    echo "Generated C source preserved at: $tmp_out.c"
+                    echo "--- Source Begin ---"
+                    cat "$tmp_out.c"
+                    echo "--- Source End ---"
+                elif [ -f "$tmp_out.cpp" ]; then
+                    echo "Generated C++ source preserved at: $tmp_out.cpp"
+                    echo "--- Source Begin ---"
+                    cat "$tmp_out.cpp"
+                    echo "--- Source End ---"
+                fi
+            else
+                if [ -f "$tmp_out.c" ]; then
+                    echo "Generated C source preserved at: $tmp_out.c"
+                elif [ -f "$tmp_out.cpp" ]; then
+                    echo "Generated C++ source preserved at: $tmp_out.cpp"
+                fi
+                echo "(Source printing suppressed. Log noise reduced.)"
             fi
             echo "----------------------------------------"
             ((FAILED++))
@@ -246,7 +265,7 @@ echo "----------------------------------------"
 
 if [ $FAILED -ne 0 ]; then
     echo -e "Failed tests:$FAILED_TESTS"
-    rm -f test_out_*.out test_out_*.out.c test_out_*.out.cpp test_out_*.out.m out.c out.cpp out.m rule_*
+    # Keep artifacts for CI or manual debugging
     exit 1
 else
     echo "All tests passed!"
