@@ -1034,7 +1034,7 @@ void codegen_expression(ParserContext *ctx, ASTNode *node, FILE *out)
                 if (!strchr(type, '*') &&
                     (target->type == NODE_EXPR_CALL || target->type == NODE_EXPR_LITERAL ||
                      target->type == NODE_EXPR_BINARY || target->type == NODE_EXPR_UNARY ||
-                     target->type == NODE_EXPR_CAST))
+                     target->type == NODE_EXPR_CAST || target->type == NODE_EXPR_STRUCT_INIT))
                 {
                     char *type_mangled = (char *)normalize_type_name(type);
                     if (type_mangled != type)
@@ -1082,9 +1082,21 @@ void codegen_expression(ParserContext *ctx, ASTNode *node, FILE *out)
                     }
 
                     emit_mangled_name(ctx, out, mangled_base, method);
-                    fprintf(out, "((%s[]){", type_mangled);
-                    codegen_expression(ctx, target, out);
-                    fprintf(out, "}");
+                    fprintf(out, "(");
+                    if (g_config.use_cpp)
+                    {
+                        fprintf(out, "({ __typeof__((");
+                        codegen_expression(ctx, target, out);
+                        fprintf(out, ")) _tmp = ");
+                        codegen_expression(ctx, target, out);
+                        fprintf(out, "; &_tmp; })");
+                    }
+                    else
+                    {
+                        fprintf(out, "((%s[]){", type_mangled);
+                        codegen_expression(ctx, target, out);
+                        fprintf(out, "})");
+                    }
                     ASTNode *arg = node->call.args;
                     while (arg)
                     {
