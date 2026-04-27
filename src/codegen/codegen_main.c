@@ -158,7 +158,6 @@ static int is_module_visited(VisitedModules *visited, const char *path)
 
 static void mark_module_visited(VisitedModules **visited, const char *path)
 {
-    fprintf(stderr, "DEBUG_MAIN: marking module visited: %s\n", path);
     VisitedModules *node = xmalloc(sizeof(VisitedModules));
     node->path = path; // path is from import_stmt which persists
     node->next = *visited;

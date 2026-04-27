@@ -4653,6 +4653,7 @@ char *run_comptime_block(ParserContext *ctx, Lexer *l)
     fprintf(f, "#define __COMPTIME_TARGET__ \"%s\"\n", z_get_system_name());
     fprintf(f, "#define __COMPTIME_FILE__ \"%s\"\n", g_current_filename);
 
+    VisitedModules *visited = NULL;
     ASTNode *curr = nodes;
     ASTNode *stmts = NULL;
     ASTNode *stmts_tail = NULL;
@@ -4664,11 +4665,11 @@ char *run_comptime_block(ParserContext *ctx, Lexer *l)
 
         if (curr->type == NODE_INCLUDE)
         {
-            emit_includes_and_aliases(curr, f);
+            emit_includes_and_aliases(curr, f, &visited);
         }
         else if (curr->type == NODE_STRUCT)
         {
-            emit_struct_defs(&cctx, curr, f);
+            emit_struct_defs(&cctx, curr, f, &visited);
         }
         else if (curr->type == NODE_ENUM)
         {
@@ -4676,8 +4677,9 @@ char *run_comptime_block(ParserContext *ctx, Lexer *l)
         }
         else if (curr->type == NODE_CONST)
         {
-            emit_globals(&cctx, curr, f);
+            emit_globals(&cctx, curr, f, &visited);
         }
+
         else if (curr->type == NODE_FUNCTION)
         {
             codegen_node_single(&cctx, curr, f);

@@ -107,7 +107,6 @@ static void print_markdown_doc(const char *comment)
     {
         return;
     }
-    printf("DEBUG_RAW: '%s'\n", comment);
     char *cleaned = clean_comment_content(comment);
     if (cleaned && cleaned[0])
     {
