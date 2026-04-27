@@ -818,7 +818,8 @@ char *parse_array_literal(ParserContext *ctx, Lexer *l, const char *st)
     {
         if (g_config.use_cpp && in_func)
         {
-            snprintf(o, o_sz, "({ %s __tmp[] = {%s}; (%s){__tmp, %d, %d}; })", rt, c, st, n, n);
+            snprintf(o, o_sz, "({ static const %s __tmp[] = {%s}; (%s){( %s *)__tmp, %d, %d}; })",
+                     rt, c, st, rt, n, n);
         }
         else if (g_config.use_cpp)
         {
@@ -833,7 +834,9 @@ char *parse_array_literal(ParserContext *ctx, Lexer *l, const char *st)
     {
         if (g_config.use_cpp && in_func)
         {
-            snprintf(o, o_sz, "({ int __tmp[] = {%s}; (Slice__int){__tmp, %d, %d}; })", c, n, n);
+            snprintf(o, o_sz,
+                     "({ static const int __tmp[] = {%s}; (Slice__int){(int*)__tmp, %d, %d}; })", c,
+                     n, n);
         }
         else if (g_config.use_cpp)
         {
@@ -967,7 +970,7 @@ ASTNode *parse_embed(ParserContext *ctx, Lexer *l)
 
         if (use_cpp_stmt)
         {
-            snprintf(o, oc, "({ char __tmp[] = {");
+            snprintf(o, oc, "({ static const char __tmp[] = {");
         }
         else if (g_config.use_cpp)
         {
@@ -1004,7 +1007,7 @@ ASTNode *parse_embed(ParserContext *ctx, Lexer *l)
 
                 if (use_cpp_stmt)
                 {
-                    snprintf(o, oc, "({ %s __tmp[] = {", inner_ts);
+                    snprintf(o, oc, "({ static const %s __tmp[] = {", inner_ts);
                 }
                 else if (g_config.use_cpp)
                 {
@@ -1078,7 +1081,8 @@ ASTNode *parse_embed(ParserContext *ctx, Lexer *l)
                     char *ts = type_to_string(target_type);
                     if (g_config.use_cpp)
                     {
-                        snprintf(p, oc - cur_len, "}; (%s){__tmp, %ld, %ld}; })", ts, (long)len,
+                        snprintf(p, oc - cur_len, "}; (%s){(%s*)__tmp, %ld, %ld}; })", ts,
+                                 (strncmp(ts, "Slice__", 7) == 0 ? ts + 7 : "char"), (long)len,
                                  (long)len);
                     }
                     else

@@ -127,10 +127,9 @@ impl Regex {
         let pos = 0;
         let t_len = strlen(text);
         while (pos < t_len) {
-            let sub = text + pos;
             let res: bool = false;
             raw {
-                res = (tre_regexec((regex_t*)self->preg, sub, 0, 0, 0) == 0);
+                res = (tre_regexec((regex_t*)self->preg, text + pos, 0, 0, 0) == 0);
             }
             if (res) {
                 count = count + 1;
@@ -152,10 +151,9 @@ impl Regex {
         let last_pos = 0;
         let pos = 0;
         while (pos < t_len) {
-            let sub = text + pos;
             let res: bool = false;
             raw {
-                res = (tre_regexec((regex_t*)self->preg, sub, 0, 0, 0) == 0);
+                res = (tre_regexec((regex_t*)self->preg, text + pos, 0, 0, 0) == 0);
             }
             if (res) {
                 if (pos > last_pos) {
