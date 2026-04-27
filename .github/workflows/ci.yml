@@ -33,7 +33,13 @@ jobs:
     - name: Install Lizard
       run: pip install lizard
     - name: Run Lizard
-      run: lizard src/ --CCN 25 --length 1500 --working_threads 4
+      run: lizard src/ --CCN 25 --length 1500 --working_threads 4 | tee lizard-report.txt
+    - name: Upload Lizard Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: lizard-report
+        path: lizard-report.txt
 
   cpd:
     name: Copy-Paste Detection (PMD CPD)
@@ -52,7 +58,13 @@ jobs:
         unzip pmd-dist-${VERSION}-bin.zip
         echo "$(pwd)/pmd-bin-${VERSION}/bin" >> $GITHUB_PATH
     - name: Run PMD CPD
-      run: pmd cpd --minimum-tokens 100 --dir src/ --language cpp --format text
+      run: pmd cpd --minimum-tokens 100 --dir src/ --language cpp --format text | tee cpd-report.txt
+    - name: Upload PMD CPD Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: cpd-report
+        path: cpd-report.txt
 
   clang-tidy:
     name: Static Analysis (Clang-Tidy)
