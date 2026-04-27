@@ -185,5 +185,13 @@
         "inet_ntoa",
         "inet_pton",
         "inet_ntop"
+    ],
+    "c_types": [
+        "FILE",
+        "size_t",
+        "va_list",
+        "uintptr_t",
+        "intptr_t",
+        "ptrdiff_t"
     ]
 }

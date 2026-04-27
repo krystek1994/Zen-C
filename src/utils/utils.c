@@ -811,7 +811,7 @@ int levenshtein(const char *s1, const char *s2)
     }
 
     int result = MATRIX(len1, len2);
-    (free)(matrix);
+    free(matrix);
     return result;
 }
 

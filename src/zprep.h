@@ -263,6 +263,7 @@ typedef struct
     char cc[64]; ///< Backend compiler command (e.g. "gcc", "clang").
 
     char **c_function_whitelist; ///< List of C functions to suppress warnings for (from zenc.json).
+    char **c_type_whitelist;     ///< List of C types to suppress warnings for (from zenc.json).
 
     // User-defined -D flags tracked for @cfg() evaluation.
     char *cfg_defines[64]; ///< Define names from -D flags.

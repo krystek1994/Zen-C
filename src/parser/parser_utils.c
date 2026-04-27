@@ -5931,6 +5931,28 @@ int validate_types(ParserContext *ctx)
                 {
                     if (!is_trait(u->name) && TYPE_UNKNOWN == find_primitive_kind(u->name))
                     {
+                        // Check dynamic whitelist from zenc.json
+                        int whitelisted = 0;
+                        if (g_config.c_type_whitelist)
+                        {
+                            char **ptr = g_config.c_type_whitelist;
+                            while (*ptr)
+                            {
+                                if (strcmp(u->name, *ptr) == 0)
+                                {
+                                    whitelisted = 1;
+                                    break;
+                                }
+                                ptr++;
+                            }
+                        }
+
+                        if (whitelisted)
+                        {
+                            u = u->next;
+                            continue;
+                        }
+
                         if (!g_config.mode_lsp)
                         {
                             char msg[MAX_SHORT_MSG_LEN];

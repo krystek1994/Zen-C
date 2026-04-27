@@ -5,24 +5,24 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Helper to append strings to the global whitelist
-static void append_whitelist(cJSON *c_funcs)
+// Helper to append strings to a global whitelist
+static void append_to_whitelist(char ***whitelist_ptr, cJSON *items)
 {
-    if (!cJSON_IsArray(c_funcs))
+    if (!cJSON_IsArray(items))
     {
         return;
     }
 
-    int new_count = cJSON_GetArraySize(c_funcs);
+    int new_count = cJSON_GetArraySize(items);
     if (new_count == 0)
     {
         return;
     }
 
     int current_count = 0;
-    if (g_config.c_function_whitelist)
+    if (*whitelist_ptr)
     {
-        char **ptr = g_config.c_function_whitelist;
+        char **ptr = *whitelist_ptr;
         while (*ptr)
         {
             current_count++;
@@ -31,19 +31,19 @@ static void append_whitelist(cJSON *c_funcs)
     }
 
     size_t new_size = sizeof(char *) * (current_count + new_count + 1);
-    g_config.c_function_whitelist = xrealloc(g_config.c_function_whitelist, new_size);
+    *whitelist_ptr = xrealloc(*whitelist_ptr, new_size);
 
     int added = 0;
     cJSON *item = NULL;
-    cJSON_ArrayForEach(item, c_funcs)
+    cJSON_ArrayForEach(item, items)
     {
         if (cJSON_IsString(item) && item->valuestring)
         {
-            g_config.c_function_whitelist[current_count + added] = xstrdup(item->valuestring);
+            (*whitelist_ptr)[current_count + added] = xstrdup(item->valuestring);
             added++;
         }
     }
-    g_config.c_function_whitelist[current_count + added] = NULL;
+    (*whitelist_ptr)[current_count + added] = NULL;
 }
 
 static int load_config_file(const char *path)
@@ -71,14 +71,19 @@ static int load_config_file(const char *path)
     fclose(f);
 
     cJSON *json = cJSON_Parse(data);
-    (free)(data);
+    free(data);
 
     if (json)
     {
         cJSON *c_funcs = cJSON_GetObjectItemCaseSensitive(json, "c_functions");
-        if (cJSON_IsArray(c_funcs))
+        if (c_funcs)
         {
-            append_whitelist(c_funcs);
+            append_to_whitelist(&g_config.c_function_whitelist, c_funcs);
+        }
+        cJSON *c_types = cJSON_GetObjectItemCaseSensitive(json, "c_types");
+        if (c_types)
+        {
+            append_to_whitelist(&g_config.c_type_whitelist, c_types);
         }
         cJSON_Delete(json);
         return 1;
