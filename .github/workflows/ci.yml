@@ -52,7 +52,7 @@ jobs:
         unzip pmd-dist-${VERSION}-bin.zip
         echo "$(pwd)/pmd-bin-${VERSION}/bin" >> $GITHUB_PATH
     - name: Run PMD CPD
-      run: pmd cpd --minimum-tokens 100 --files src/ --language cpp --format text --fail-on-violation true
+      run: pmd cpd --minimum-tokens 100 --dir src/ --language cpp --format text
 
   clang-tidy:
     name: Static Analysis (Clang-Tidy)
