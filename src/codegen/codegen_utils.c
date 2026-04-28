@@ -831,6 +831,182 @@ void emit_auto_type(ParserContext *ctx, ASTNode *init_expr, Token t, FILE *out)
 }
 
 // Emit function signature using Type info for correct C codegen
+// Helper to map Zen C types to C-compatible types
+const char *map_to_c_type(const char *t)
+{
+    static char buf[4][256];
+    static int idx = 0;
+    if (!t)
+    {
+        return NULL;
+    }
+
+    char *out_buf = buf[idx];
+    idx = (idx + 1) % 4;
+
+    size_t len = strlen(t);
+    int ptr_count = 0;
+    char suffix[64] = {0};
+
+    // Extract any [] or [size] suffix first
+    char *bracket = strchr(t, '[');
+    if (bracket)
+    {
+        strncpy(suffix, bracket, 63);
+        len = bracket - t;
+    }
+
+    // Extract pointer stars
+    while (len > 0 && t[len - 1] == '*')
+    {
+        ptr_count++;
+        len--;
+    }
+
+    char base[256];
+    if (len >= sizeof(base))
+    {
+        len = sizeof(base) - 1;
+    }
+    strncpy(base, t, len);
+    base[len] = '\0';
+
+    const char *mapped = get_primitive_c_name(base);
+    snprintf(out_buf, 256, "%s", mapped);
+    for (int i = 0; i < ptr_count; i++)
+    {
+        strncat(out_buf, "*", 256 - strlen(out_buf) - 1);
+    }
+    if (suffix[0])
+    {
+        strncat(out_buf, suffix, 256 - strlen(out_buf) - 1);
+    }
+    return out_buf;
+}
+
+char *substitute_proto_self(const char *type, const char *self_replacement)
+{
+    if (!type || !self_replacement)
+    {
+        return xstrdup(type ? type : "void");
+    }
+
+    if (strcmp(type, "Self") == 0 || strcmp(type, "self") == 0)
+    {
+        return xstrdup(self_replacement);
+    }
+
+    if (strncmp(type, "Self*", 5) == 0 || strncmp(type, "self*", 5) == 0)
+    {
+        char *res = xmalloc(strlen(self_replacement) + 2);
+        sprintf(res, "%s*", self_replacement);
+        return res;
+    }
+
+    // Generic fallback for strings containing Self
+    char *self_pos = strstr(type, "Self");
+    if (!self_pos)
+    {
+        self_pos = strstr(type, "self");
+    }
+
+    if (self_pos)
+    {
+        int prefix_len = self_pos - type;
+        int replacement_len = strlen(self_replacement);
+        int suffix_len = strlen(self_pos + 4);
+        char *res = xmalloc(prefix_len + replacement_len + suffix_len + 1);
+        strncpy(res, type, prefix_len);
+        strcpy(res + prefix_len, self_replacement);
+        strcpy(res + prefix_len + replacement_len, self_pos + 4);
+        return res;
+    }
+
+    return xstrdup(type);
+}
+
+void emit_func_args(ParserContext *ctx, FILE *out, ASTNode *func, const char *self_replacement,
+                    int start_index)
+{
+    if (!func || func->type != NODE_FUNCTION)
+    {
+        return;
+    }
+
+    if (func->func.arg_count <= start_index && !func->func.is_varargs)
+    {
+        if (start_index == 0)
+        {
+            fprintf(out, "void");
+        }
+        return;
+    }
+
+    int emitted = 0;
+    for (int i = start_index; i < func->func.arg_count; i++)
+    {
+        if (emitted > 0)
+        {
+            fprintf(out, ", ");
+        }
+
+        char *type_str = NULL;
+        if (func->func.c_type_overrides && func->func.c_type_overrides[i])
+        {
+            type_str = xstrdup(func->func.c_type_overrides[i]);
+        }
+        else if (func->func.arg_types && func->func.arg_types[i])
+        {
+            char *raw_type = type_to_c_string(func->func.arg_types[i]);
+            if (self_replacement)
+            {
+                type_str = substitute_proto_self(raw_type, self_replacement);
+                free(raw_type);
+            }
+            else
+            {
+                type_str = raw_type;
+            }
+        }
+        else
+        {
+            type_str = xstrdup("void*");
+        }
+
+        // Apply mandatory mapping for primitive types (like i32 -> int32_t)
+        // Note: map_to_c_type handles pointer stars and arrays correctly.
+        const char *mapped = map_to_c_type(type_str);
+        char *final_type = xstrdup(mapped);
+        free(type_str);
+        type_str = final_type;
+
+        const char *name =
+            (func->func.param_names && func->func.param_names[i]) ? func->func.param_names[i] : "";
+
+        // Handle array/function pointer declaration via emit_c_decl logic
+        if (strchr(type_str, '[') || strstr(type_str, "(*)"))
+        {
+            emit_c_decl(ctx, out, type_str, name);
+        }
+        else
+        {
+            fprintf(out, "%s %s", type_str, name);
+        }
+
+        free(type_str);
+        emitted++;
+    }
+
+    if (func->func.is_varargs)
+    {
+        if (emitted > 0)
+        {
+            fprintf(out, ", ");
+        }
+        fprintf(out, "...");
+    }
+}
+
 void emit_func_signature(ParserContext *ctx, FILE *out, ASTNode *func, const char *name_override)
 {
     if (!func || func->type != NODE_FUNCTION)
@@ -911,55 +1087,8 @@ void emit_func_signature(ParserContext *ctx, FILE *out, ASTNode *func, const cha
         fprintf(out, "%s(", final_name);
     }
 
-    // Args
-    if (func->func.arg_count == 0 && !func->func.is_varargs)
-    {
-        fprintf(out, "void");
-    }
-    else
-    {
-        for (int i = 0; i < func->func.arg_count; i++)
-        {
-            if (i > 0)
-            {
-                fprintf(out, ", ");
-            }
+    emit_func_args(ctx, out, func, NULL, 0);
 
-            char *type_str = NULL;
-            // Check for @ctype override first
-            if (func->func.c_type_overrides && func->func.c_type_overrides[i])
-            {
-                type_str = xstrdup(func->func.c_type_overrides[i]);
-            }
-            else if (func->func.arg_types && func->func.arg_types[i])
-            {
-                type_str = type_to_c_string(func->func.arg_types[i]);
-            }
-            else
-            {
-                type_str = xstrdup("void*"); // Fallback
-            }
-
-            const char *name = "";
-
-            if (func->func.param_names && func->func.param_names[i])
-            {
-                name = func->func.param_names[i];
-            }
-
-            // check if array type
-            emit_c_decl(ctx, out, type_str, name);
-            free(type_str);
-        }
-        if (func->func.is_varargs)
-        {
-            if (func->func.arg_count > 0)
-            {
-                fprintf(out, ", ");
-            }
-            fprintf(out, "...");
-        }
-    }
     fprintf(out, ")");
 
     if (ret_suffix)

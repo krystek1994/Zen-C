@@ -528,7 +528,8 @@ void emit_enum_protos(ParserContext *ctx, ASTNode *node, FILE *out)
                             while (f)
                             {
                                 char *at = f->field.type;
-                                fprintf(out, "%s _%d%s", at, i, (f->next) ? ", " : "");
+                                fprintf(out, "%s _%d%s", map_to_c_type(at), i,
+                                        (f->next) ? ", " : "");
                                 f = f->next;
                                 i++;
                             }
@@ -1012,7 +1013,8 @@ static void emit_struct_defs_internal(ParserContext *ctx, ASTNode *node, FILE *o
                             while (f)
                             {
                                 char *at = f->field.type;
-                                fprintf(out, "%s _%d%s", at, i, (f->next) ? ", " : "");
+                                fprintf(out, "%s _%d%s", map_to_c_type(at), i,
+                                        (f->next) ? ", " : "");
                                 f = f->next;
                                 i++;
                             }
@@ -1104,30 +1106,8 @@ void emit_struct_defs(ParserContext *ctx, ASTNode *node, FILE *out, VisitedModul
     }
 }
 
-// Helper to substitute 'Self' with replacement string
-static char *substitute_proto_self(const char *type_str, const char *replacement)
-{
-    if (!type_str)
-    {
-        return NULL;
-    }
-    if (strcasecmp(type_str, "Self") == 0)
-    {
-        return xstrdup(replacement);
-    }
-    // Handle pointers (Self* -> replacement*)
-    if (strncasecmp(type_str, "Self", 4) == 0)
-    {
-        const char *rest = type_str + 4;
-        char *buf = xmalloc(strlen(replacement) + strlen(rest) + 1);
-        sprintf(buf, "%s%s", replacement, rest);
-        return buf;
-    }
-    return xstrdup(type_str);
-}
-
-// Emit trait definitions.
-static void emit_trait_defs_internal(ASTNode *node, FILE *out, VisitedModules **visited, int depth)
+static void emit_trait_defs_internal(ParserContext *ctx, ASTNode *node, FILE *out,
+                                     VisitedModules **visited, int depth)
 {
     if (depth > 1024)
     {
@@ -1140,7 +1120,8 @@ static void emit_trait_defs_internal(ASTNode *node, FILE *out, VisitedModules **
             if (!is_module_visited(*visited, node->import_stmt.path))
             {
                 mark_module_visited(visited, node->import_stmt.path);
-                emit_trait_defs_internal(node->import_stmt.module_root, out, visited, depth + 1);
+                emit_trait_defs_internal(ctx, node->import_stmt.module_root, out, visited,
+                                         depth + 1);
             }
             node = node->next;
             continue;
@@ -1160,37 +1141,26 @@ static void emit_trait_defs_internal(ASTNode *node, FILE *out, VisitedModules **
             ASTNode *m = node->trait.methods;
             while (m)
             {
-                char *ret_safe = substitute_proto_self(m->func.ret_type, "void*");
+                char *ret_sub_raw = substitute_proto_self(m->func.ret_type, "void*");
+                const char *ret_sub = map_to_c_type(ret_sub_raw);
                 const char *orig = parse_original_method_name(m->func.name);
-                fprintf(out, "    %s (*%s)(", ret_safe, orig);
-                free(ret_safe);
+                fprintf(out, "    %s (*%s)(", ret_sub, orig);
+                free(ret_sub_raw);
 
-                int has_self = (m->func.args && strstr(m->func.args, "self"));
+                int has_self =
+                    (m->func.arg_count > 0 && m->func.param_names && m->func.param_names[0] &&
+                     strcmp(m->func.param_names[0], "self") == 0);
+
                 if (!has_self)
                 {
                     fprintf(out, "void* self");
+                    if (m->func.arg_count > 0)
+                    {
+                        fprintf(out, ", ");
+                    }
                 }
 
-                if (m->func.args && strlen(m->func.args) > 0)
-                {
-                    char *args_safe = replace_type_str(m->func.args, "Self", "void*", NULL, NULL);
-                    // Filter out "void* self" or "const void* self" if it's already there to avoid
-                    // duplication
-                    if (strstr(args_safe, "void* self") == args_safe ||
-                        strstr(args_safe, "const void* self") == args_safe)
-                    {
-                        fprintf(out, "%s", args_safe);
-                    }
-                    else if (strlen(args_safe) > 0)
-                    {
-                        if (!has_self)
-                        {
-                            fprintf(out, ", ");
-                        }
-                        fprintf(out, "%s", args_safe);
-                    }
-                    free(args_safe);
-                }
+                emit_func_args(ctx, out, m, "void*", 0);
                 fprintf(out, ");\n");
                 m = m->next;
             }
@@ -1208,22 +1178,22 @@ static void emit_trait_defs_internal(ASTNode *node, FILE *out, VisitedModules **
     }
 }
 
-void emit_trait_defs(ASTNode *node, FILE *out, VisitedModules **visited)
+void emit_trait_defs(ParserContext *ctx, ASTNode *node, FILE *out, VisitedModules **visited)
 {
     if (visited)
     {
-        emit_trait_defs_internal(node, out, visited, 0);
+        emit_trait_defs_internal(ctx, node, out, visited, 0);
     }
     else
     {
         VisitedModules *local_visited = NULL;
-        emit_trait_defs_internal(node, out, &local_visited, 0);
+        emit_trait_defs_internal(ctx, node, out, &local_visited, 0);
     }
 }
 
 // Emit trait wrapper functions.
-static void emit_trait_wrappers_internal(ASTNode *node, FILE *out, VisitedModules **visited,
-                                         int depth)
+static void emit_trait_wrappers_internal(ParserContext *ctx, ASTNode *node, FILE *out,
+                                         VisitedModules **visited, int depth)
 {
     if (depth > 1024)
     {
@@ -1236,7 +1206,7 @@ static void emit_trait_wrappers_internal(ASTNode *node, FILE *out, VisitedModule
             if (!is_module_visited(*visited, node->import_stmt.path))
             {
                 mark_module_visited(visited, node->import_stmt.path);
-                emit_trait_wrappers_internal(node->import_stmt.module_root, out, visited,
+                emit_trait_wrappers_internal(ctx, node->import_stmt.module_root, out, visited,
                                              depth + 1);
             }
             node = node->next;
@@ -1256,30 +1226,32 @@ static void emit_trait_wrappers_internal(ASTNode *node, FILE *out, VisitedModule
             ASTNode *m = node->trait.methods;
             while (m)
             {
-                char *ret_sub = substitute_proto_self(m->func.ret_type, node->trait.name);
+                char *ret_sub_raw = substitute_proto_self(m->func.ret_type, node->trait.name);
+                const char *ret_sub = map_to_c_type(ret_sub_raw);
                 const char *orig = parse_original_method_name(m->func.name);
-                int is_const_self = (m->func.arg_count > 0 && m->func.arg_types &&
-                                     m->func.arg_types[0] && m->func.arg_types[0]->is_const);
+
+                int has_self =
+                    (m->func.arg_count > 0 && m->func.param_names && m->func.param_names[0] &&
+                     strcmp(m->func.param_names[0], "self") == 0);
+
+                if (!has_self)
+                {
+                    m = m->next;
+                    free(ret_sub_raw);
+                    continue;
+                }
+
+                int is_const_self =
+                    (m->func.arg_types && m->func.arg_types[0] && m->func.arg_types[0]->is_const);
+
                 fprintf(out, "%s %s__%s(%s%s* self", ret_sub, node->trait.name, orig,
                         is_const_self ? "const " : "", node->trait.name);
 
-                if (m->func.args && strlen(m->func.args) > 0)
+                if (m->func.arg_count > 1 || m->func.is_varargs)
                 {
-                    char *sa = replace_type_str(m->func.args, "Self", node->trait.name, NULL, NULL);
-                    if (strstr(sa, "void* self") == sa || strstr(sa, "const void* self") == sa)
-                    {
-                        char *comma = strchr(sa, ',');
-                        if (comma)
-                        {
-                            fprintf(out, ", %s", comma + 1);
-                        }
-                    }
-                    else if (strlen(sa) > 0)
-                    {
-                        fprintf(out, ", %s", sa);
-                    }
-                    free(sa);
+                    fprintf(out, ", ");
                 }
+                emit_func_args(ctx, out, m, node->trait.name, 1);
                 fprintf(out, ") {\n");
 
                 int ret_is_self = (m->func.ret_type && strcasecmp(m->func.ret_type, "Self") == 0);
@@ -1289,28 +1261,33 @@ static void emit_trait_wrappers_internal(ASTNode *node, FILE *out, VisitedModule
                 }
                 else
                 {
-                    fprintf(out, "    return self->vtable->%s(self->self", orig);
+                    if (strcmp(ret_sub, "void") != 0)
+                    {
+                        fprintf(out, "    return self->vtable->%s(self->self", orig);
+                    }
+                    else
+                    {
+                        fprintf(out, "    self->vtable->%s(self->self", orig);
+                    }
                 }
 
-                if (m->func.args && strlen(m->func.args) > 0)
+                if (m->func.arg_count > 1 || m->func.is_varargs)
                 {
                     char *call_args = extract_call_args(m->func.args);
                     if (call_args && strlen(call_args) > 0)
                     {
-                        if (strcmp(call_args, "self") != 0)
+                        // Skip 'self' in call args if it's there
+                        if (strstr(call_args, "self") == call_args)
                         {
-                            if (strstr(call_args, "self") == call_args)
+                            char *comma = strchr(call_args, ',');
+                            if (comma)
                             {
-                                char *comma = strchr(call_args, ',');
-                                if (comma)
-                                {
-                                    fprintf(out, ", %s", comma + 1);
-                                }
+                                fprintf(out, ", %s", comma + 1);
                             }
-                            else
-                            {
-                                fprintf(out, ", %s", call_args);
-                            }
+                        }
+                        else
+                        {
+                            fprintf(out, ", %s", call_args);
                         }
                     }
                     free(call_args);
@@ -1323,7 +1300,7 @@ static void emit_trait_wrappers_internal(ASTNode *node, FILE *out, VisitedModule
                             node->trait.name);
                 }
                 fprintf(out, "}\n\n");
-                free(ret_sub);
+                free(ret_sub_raw);
                 m = m->next;
             }
             if (node->cfg_condition)
@@ -1336,16 +1313,16 @@ static void emit_trait_wrappers_internal(ASTNode *node, FILE *out, VisitedModule
     }
 }
 
-void emit_trait_wrappers(ASTNode *node, FILE *out, VisitedModules **visited)
+void emit_trait_wrappers(ParserContext *ctx, ASTNode *node, FILE *out, VisitedModules **visited)
 {
     if (visited)
     {
-        emit_trait_wrappers_internal(node, out, visited, 0);
+        emit_trait_wrappers_internal(ctx, node, out, visited, 0);
     }
     else
     {
         VisitedModules *local_visited = NULL;
-        emit_trait_wrappers_internal(node, out, &local_visited, 0);
+        emit_trait_wrappers_internal(ctx, node, out, &local_visited, 0);
     }
 }
 

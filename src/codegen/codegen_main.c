@@ -752,7 +752,7 @@ void codegen_node(ParserContext *ctx, ASTNode *node, FILE *out)
         emit_type_aliases(kids, out, &visited);
 
         visited = NULL;
-        emit_trait_defs(kids, out, &visited);
+        emit_trait_defs(ctx, kids, out, &visited);
 
         // Track emitted raw statements to prevent duplicates
         EmittedContent *emitted_raw = NULL;
@@ -880,7 +880,7 @@ void codegen_node(ParserContext *ctx, ASTNode *node, FILE *out)
         }
 
         visited = NULL;
-        emit_trait_wrappers(kids, out, &visited);
+        emit_trait_wrappers(ctx, kids, out, &visited);
 
         visited = NULL;
         emit_protos(ctx, merged_funcs, out, &visited);

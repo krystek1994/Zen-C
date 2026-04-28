@@ -54,6 +54,10 @@ void emit_var_decl_type(ParserContext *ctx, FILE *out, const char *type_str, con
 char *replace_string_type(const char *args);
 const char *parse_original_method_name(const char *mangled);
 void emit_auto_type(ParserContext *ctx, ASTNode *init_expr, Token t, FILE *out);
+void emit_func_args(ParserContext *ctx, FILE *out, ASTNode *func, const char *self_replacement,
+                    int start_index);
+char *substitute_proto_self(const char *type, const char *self_replacement);
+const char *map_to_c_type(const char *t);
 void emit_func_signature(ParserContext *ctx, FILE *out, ASTNode *func, const char *name_override);
 char *strip_template_suffix(const char *name);
 int emit_move_invalidation(ParserContext *ctx, ASTNode *node, FILE *out);
@@ -77,8 +81,8 @@ void emit_includes_and_aliases(ASTNode *node, FILE *out, VisitedModules **visite
 void emit_type_aliases(ASTNode *node, FILE *out, VisitedModules **visited);
 void emit_global_aliases(ParserContext *ctx, FILE *out);
 void emit_struct_defs(ParserContext *ctx, ASTNode *node, FILE *out, VisitedModules **visited);
-void emit_trait_defs(ASTNode *node, FILE *out, VisitedModules **visited);
-void emit_trait_wrappers(ASTNode *node, FILE *out, VisitedModules **visited);
+void emit_trait_defs(ParserContext *ctx, ASTNode *node, FILE *out, VisitedModules **visited);
+void emit_trait_wrappers(ParserContext *ctx, ASTNode *node, FILE *out, VisitedModules **visited);
 void emit_enum_protos(ParserContext *ctx, ASTNode *node, FILE *out);
 void emit_globals(ParserContext *ctx, ASTNode *node, FILE *out, VisitedModules **visited);
 void emit_lambda_defs(ParserContext *ctx, FILE *out);
