@@ -1,4 +1,5 @@
 // stdlib: SysInfo::get_uname using @crepr struct utsname
+// REQUIRE: NOT WINDOWS
 import "std/sys/info.zc"
 import "std/string.zc"
 

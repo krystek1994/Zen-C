@@ -211,6 +211,13 @@ run_test() {
             return
         fi
     fi
+    if grep -q "// REQUIRE: NOT WINDOWS" "$test_file"; then
+        case "$(uname -s 2>/dev/null)" in
+            MINGW*|MSYS*|CYGWIN*)
+                echo "SKIP" > "$result_file.status"
+                return ;;
+        esac
+    fi
 
     local tmp_out="test_out_parallel_${job_id}.out"
     local cmd_str="$ZC run \"$test_file\" -o \"$tmp_out\" -w --emit-c ${zc_args[*]}"
