@@ -1584,7 +1584,7 @@ static void canonicalize_ambiguous_chars(const char *src, char *dst, size_t dest
 
 void misra_check_typographic_ambiguity(struct ParserContext *ctx, const char *new_name, Token loc)
 {
-    if (!ctx->config->misra_mode || !ctx || !new_name)
+    if (!ctx || !ctx->config->misra_mode || !new_name)
     {
         return;
     }

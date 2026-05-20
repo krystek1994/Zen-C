@@ -81,7 +81,13 @@ jobs:
         cd build-cmake
         cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
     - name: Run Clang-Tidy
-      run: run-clang-tidy -p build-cmake 'src/.*\.c'
+      run: run-clang-tidy -p build-cmake -checks='-*,clang-analyzer-*,bugprone-*,performance-*,readibility-*' 'src/.*\.c' 2>&1 | tee clang-tidy-report.txt
+    - name: Upload Clang-Tidy Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: clang-tidy-report
+        path: clang-tidy-report.txt
 
   misra-lint:
     name: MISRA C Compliance
@@ -340,6 +346,23 @@ jobs:
           test_out_parallel_*
           *.out.c
           *.out.cpp
+        if-no-files-found: warn
+
+  test-analyzer:
+    name: GCC Static Analyzer
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install libtcc-dev
+      run: sudo apt-get update && sudo apt-get install -y libtcc-dev
+    - name: Build with Static Analyzer
+      run: make analyzer ZC_HAS_JIT=0
+    - name: Upload Analyzer Log
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: analyzer-log
+        path: src/**/*.analyzer.log
         if-no-files-found: warn
 
   test-tsan:

@@ -309,6 +309,13 @@ static int repl_process_line(ReplState *state, char *line_buf, int *brace_depth,
 
     repl_history_add(state, *input_buffer);
     char *raw_input = strdup(*input_buffer);
+    if (!raw_input)
+    {
+        zfree(*input_buffer);
+        *input_buffer = NULL;
+        *input_len = 0;
+        return -1;
+    }
     zfree(*input_buffer);
     *input_buffer = NULL;
     *input_len = 0;

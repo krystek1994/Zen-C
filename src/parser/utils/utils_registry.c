@@ -815,7 +815,7 @@ FuncSig *find_func(ParserContext *ctx, const char *name)
         c = c->next;
     }
 
-    if (ctx && ctx->current_impl_methods)
+    if (ctx->current_impl_methods)
     {
         ASTNode *n = ctx->current_impl_methods;
         while (n)

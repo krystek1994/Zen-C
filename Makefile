@@ -477,6 +477,13 @@ test-asan-leaks: clean
 	ASAN_OPTIONS=detect_leaks=1 ./tests/scripts/run_codegen_tests.sh
 
 # ThreadSanitizer — catches data races (separate from ASAN)
+# GCC Static Analyzer — deep path-sensitive analysis (slow, ~5x build time)
+analyzer: CFLAGS += -fanalyzer
+analyzer: $(TARGET) $(PLUGINS)
+
+test-analyzer: clean analyzer
+	./tests/scripts/run_tests.sh --no-source -j 2
+
 tsan: CFLAGS += -fsanitize=thread -O1 -g -fno-omit-frame-pointer
 tsan: LIBS += -fsanitize=thread
 tsan: $(TARGET)
@@ -489,14 +496,6 @@ msan: CC = clang
 msan: CFLAGS += -fsanitize=memory -O1 -g -fno-omit-frame-pointer -fsanitize-memory-track-origins
 msan: LIBS += -fsanitize=memory
 msan: $(TARGET)
-
-test-msan: clean msan
-	./tests/scripts/run_tests.sh --no-source -j 2
-
-# MemorySanitizer — catches uninitialized reads (Clang only, separate from ASAN)
-msan: override SAN_EXTRA = -fsanitize=memory -O1 -g -fno-omit-frame-pointer -fsanitize-memory-track-origins
-msan:
-	$(MAKE) CC=clang CFLAGS="$(CFLAGS) $(SAN_EXTRA)" LIBS="-fsanitize=memory" ZC_HAS_JIT=0
 
 test-msan: clean msan
 	./tests/scripts/run_tests.sh --no-source -j 2
@@ -549,4 +548,4 @@ fuzz-clean:
 	rm -f $(FUZZ_TARGET) $(FUZZ_CMPLOG_TARGET)
 	rm -rf obj-fuzz obj-fuzz-cmplog
 
-.PHONY: all clean install uninstall install-ape uninstall-ape format format-check lint bench test test-misra test-tcc test-filcc test-lsp test-asan test-asan-leaks test-tsan test-msan test-plugins zig clang filcc ape windows asan tsan msan fuzz-build fuzz-run fuzz-clean
+.PHONY: all clean install uninstall install-ape uninstall-ape format format-check lint bench test test-misra test-tcc test-filcc test-lsp test-asan test-asan-leaks test-tsan test-msan test-analyzer test-plugins zig clang filcc ape windows asan tsan msan analyzer fuzz-build fuzz-run fuzz-clean

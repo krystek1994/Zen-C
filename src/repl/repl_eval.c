@@ -222,6 +222,13 @@ void repl_load_docs(ReplState *state)
     }
     if (cJSON_IsArray(json))
     {
+        // Free previously allocated docs before reloading
+        for (int j = 0; j < state->doc_count; j++)
+        {
+            zfree(state->docs[j].name);
+            zfree(state->docs[j].doc);
+        }
+        zfree(state->docs);
         state->doc_count = cJSON_GetArraySize(json);
         state->docs = calloc(state->doc_count + 1, sizeof(ReplDoc));
         cJSON *item = NULL;

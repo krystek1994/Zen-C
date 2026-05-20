@@ -159,17 +159,20 @@ static void load_facts(void)
             cJSON *msg = cJSON_GetObjectItem(item, "message");
             cJSON *url = cJSON_GetObjectItem(item, "url");
 
-            if (cJSON_IsString(trig))
+            if (facts)
             {
-                facts[i].trigger = map_trigger_name(trig->valuestring);
-            }
-            if (cJSON_IsString(msg))
-            {
-                facts[i].message = strdup(msg->valuestring);
-            }
-            if (cJSON_IsString(url))
-            {
-                facts[i].url = strdup(url->valuestring);
+                if (cJSON_IsString(trig))
+                {
+                    facts[i].trigger = map_trigger_name(trig->valuestring);
+                }
+                if (cJSON_IsString(msg))
+                {
+                    facts[i].message = strdup(msg->valuestring);
+                }
+                if (cJSON_IsString(url))
+                {
+                    facts[i].url = strdup(url->valuestring);
+                }
             }
 
             i++;

@@ -95,6 +95,10 @@ char *xstrdup(const char *s)
     }
     size_t len = strlen(s);
     char *d = xmalloc(len + 1);
+    if (!d)
+    {
+        return NULL;
+    }
     memcpy(d, s, len);
     d[len] = 0;
     return d;
@@ -924,6 +928,10 @@ char *z_strip_ext(const char *filename)
         return NULL;
     }
     char *res = xstrdup(filename);
+    if (!res)
+    {
+        return NULL;
+    }
     char *last_dot = strrchr(res, '.');
     if (last_dot)
     {

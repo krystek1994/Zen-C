@@ -1569,7 +1569,7 @@ void handle_expr_call(ParserContext *ctx, ASTNode *node)
 
                 if (!find_func(ctx, mixin_func_name))
                 {
-                    TypeAlias *ta = ctx ? ctx->type_aliases : NULL;
+                    TypeAlias *ta = ctx->type_aliases;
                     while (ta)
                     {
                         if (strcmp(ta->original_type, call_base) == 0)
