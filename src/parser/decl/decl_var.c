@@ -340,6 +340,101 @@ ASTNode *parse_var_decl(ParserContext *ctx, Lexer *l, int is_export)
             init = parse_expression(ctx, l);
         }
 
+        // Multi-let check: if this is the first of let a = 0, b = 1, handle it now
+        if (lexer_peek(l).type == TOK_COMMA)
+        {
+            // Save first decl info, jump to multi-let handling
+            ASTNode *first = ast_create(NODE_VAR_DECL);
+            first->token = name_tok;
+            first->var_decl.name = name;
+            first->var_decl.type_str = type;
+            first->var_decl.type_info = type_obj;
+            first->type_info = type_obj;
+            first->var_decl.init_expr = init;
+            if (name)
+            {
+                add_symbol_with_token(ctx, name, type, type_obj, name_tok, is_export);
+            }
+
+            // Parse remaining variables after comma
+            ASTNode *prev = first;
+            while (lexer_peek(l).type == TOK_COMMA)
+            {
+                lexer_next(l); // eat comma
+                Token ntok = lexer_next(l);
+                check_identifier(ctx, ntok);
+                char *nname = token_strdup(ntok);
+                char *ntype = NULL;
+                Type *ntype_obj = NULL;
+                if (lexer_peek(l).type == TOK_COLON)
+                {
+                    lexer_next(l);
+                    ntype_obj = parse_type_formal(ctx, l);
+                    ntype = type_to_string(ntype_obj);
+                }
+                ASTNode *ninit = NULL;
+                if (lexer_peek(l).type == TOK_OP && is_token(lexer_peek(l), "="))
+                {
+                    lexer_next(l);
+                    ninit = parse_expression(ctx, l);
+                }
+                if (!ntype && ninit)
+                {
+                    if (ninit->type_info)
+                    {
+                        ntype_obj = type_new(ninit->type_info->kind);
+                        if (ninit->type_info->name)
+                        {
+                            ntype_obj->name = xstrdup(ninit->type_info->name);
+                        }
+                        if (ninit->type_info->inner)
+                        {
+                            ntype_obj->inner = ninit->type_info->inner;
+                        }
+                        ntype_obj->array_size = ninit->type_info->array_size;
+                        ntype = type_to_string(ntype_obj);
+                    }
+                    else if (ninit->type == NODE_EXPR_LITERAL)
+                    {
+                        if (ninit->literal.type_kind == LITERAL_INT)
+                        {
+                            ntype = xstrdup("int");
+                            ntype_obj = type_new(TYPE_INT);
+                        }
+                        else if (ninit->literal.type_kind == LITERAL_FLOAT)
+                        {
+                            ntype = xstrdup("float");
+                            ntype_obj = type_new(TYPE_FLOAT);
+                        }
+                        else if (ninit->literal.type_kind == LITERAL_STRING)
+                        {
+                            ntype = xstrdup("string");
+                            ntype_obj = type_new(TYPE_STRING);
+                        }
+                    }
+                }
+                if (!ntype && !ninit)
+                {
+                    zpanic_at(ntok, "Variable '%s' requires a type or initializer", nname);
+                }
+                add_symbol_with_token(ctx, nname, ntype, ntype_obj, ntok, is_export);
+                ASTNode *nn = ast_create(NODE_VAR_DECL);
+                nn->token = ntok;
+                nn->var_decl.name = nname;
+                nn->var_decl.type_str = ntype;
+                nn->var_decl.type_info = ntype_obj;
+                nn->type_info = ntype_obj;
+                nn->var_decl.init_expr = ninit;
+                prev->next = nn;
+                prev = nn;
+            }
+            if (lexer_peek(l).type == TOK_SEMICOLON)
+            {
+                lexer_next(l);
+            }
+            return first;
+        }
+
         if (init && type)
         {
             char *rhs_type = init->resolved_type;
@@ -550,8 +645,7 @@ ASTNode *parse_var_decl(ParserContext *ctx, Lexer *l, int is_export)
         if (lexer_peek(&lookahead).type != TOK_LBRACE)
         {
             // Proceed to consume
-            tk = lexer_next(l); // eat defer (real)
-
+            lexer_next(l); // Eat defer
             // Parse the defer expression/statement
             // Usually defer close(it);
             // We parse expression.
@@ -572,6 +666,110 @@ ASTNode *parse_var_decl(ParserContext *ctx, Lexer *l, int is_export)
             // Chain it: var_decl -> defer
             n->next = d;
         }
+    }
+
+    // Multiple declarations: let a = 0, b = 1
+    if (lexer_peek(l).type == TOK_COMMA)
+    {
+        ASTNode *head = NULL;
+        ASTNode *prev = NULL;
+        // The current n is the first declaration; include it in the chain
+        head = n;
+        prev = n;
+
+        while (lexer_peek(l).type == TOK_COMMA)
+        {
+            lexer_next(l); // eat comma
+
+            // Parse next variable: name [:type] [= expr]
+            Token next_name_tok = lexer_next(l);
+            check_identifier(ctx, next_name_tok);
+            char *next_name = token_strdup(next_name_tok);
+
+            char *next_type = NULL;
+            Type *next_type_obj = NULL;
+            if (lexer_peek(l).type == TOK_COLON)
+            {
+                lexer_next(l);
+                next_type_obj = parse_type_formal(ctx, l);
+                next_type = type_to_string(next_type_obj);
+            }
+
+            ASTNode *next_init = NULL;
+            if (lexer_peek(l).type == TOK_OP && is_token(lexer_peek(l), "="))
+            {
+                lexer_next(l);
+                next_init = parse_expression(ctx, l);
+            }
+
+            if (!next_type && !next_init)
+            {
+                zpanic_at(next_name_tok, "Variable '%s' requires a type or initializer", next_name);
+            }
+
+            // Type inference from init
+            if (!next_type && next_init)
+            {
+                if (next_init->type_info)
+                {
+                    next_type_obj = type_new(next_init->type_info->kind);
+                    if (next_init->type_info->name)
+                    {
+                        next_type_obj->name = xstrdup(next_init->type_info->name);
+                    }
+                    if (next_init->type_info->inner)
+                    {
+                        next_type_obj->inner = next_init->type_info->inner;
+                    }
+                    next_type_obj->array_size = next_init->type_info->array_size;
+                    next_type = type_to_string(next_type_obj);
+                }
+                else if (next_init->type == NODE_EXPR_LITERAL)
+                {
+                    if (next_init->literal.type_kind == LITERAL_INT)
+                    {
+                        next_type = xstrdup("int");
+                        next_type_obj = type_new(TYPE_INT);
+                    }
+                    else if (next_init->literal.type_kind == LITERAL_FLOAT)
+                    {
+                        next_type = xstrdup("float");
+                        next_type_obj = type_new(TYPE_FLOAT);
+                    }
+                    else if (next_init->literal.type_kind == LITERAL_STRING)
+                    {
+                        next_type = xstrdup("string");
+                        next_type_obj = type_new(TYPE_STRING);
+                    }
+                }
+            }
+
+            add_symbol_with_token(ctx, next_name, next_type, next_type_obj, next_name_tok,
+                                  is_export);
+
+            ASTNode *next_node = ast_create(NODE_VAR_DECL);
+            next_node->token = next_name_tok;
+            next_node->var_decl.name = next_name;
+            next_node->var_decl.type_str = next_type;
+            next_node->var_decl.type_info = next_type_obj;
+            next_node->type_info = next_type_obj;
+            next_node->var_decl.init_expr = next_init;
+
+            if (!ctx->current_scope || !ctx->current_scope->parent)
+            {
+                add_to_global_list(ctx, next_node);
+            }
+
+            prev->next = next_node;
+            prev = next_node;
+        }
+
+        if (lexer_peek(l).type == TOK_SEMICOLON)
+        {
+            lexer_next(l);
+        }
+
+        return head;
     }
 
     return n;

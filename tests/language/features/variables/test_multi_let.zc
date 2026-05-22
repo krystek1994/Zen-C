@@ -1,0 +1,40 @@
+// language/features/variables: multi-let declarations with comma syntax
+
+test "multi_let_basic" {
+    let a = 10, b = 20;
+    expect_eq(a, 10, "multi-let first var should be 10");
+    expect_eq(b, 20, "multi-let second var should be 20");
+}
+
+test "multi_let_three" {
+    let x = 1, y = 2, z = 3;
+    expect_eq(x, 1, "multi-let x should be 1");
+    expect_eq(y, 2, "multi-let y should be 2");
+    expect_eq(z, 3, "multi-let z should be 3");
+}
+
+test "multi_let_with_types" {
+    let a: i32 = 10, b: f64 = 3.14;
+    expect_eq(a, 10, "typed multi-let first should be 10");
+    "typed multi-let compiles";
+}
+
+test "multi_let_reassign" {
+    let a = 5, b = 10;
+    a = a + b;
+    expect_eq(a, 15, "multi-let reassign a should be a + b");
+    expect_eq(b, 10, "multi-let reassign b should be unchanged");
+}
+
+test "multi_let_zero_values" {
+    let x = 0, y = 0;
+    expect_eq(x, 0, "multi-let x should handle zero");
+    expect_eq(y, 0, "multi-let y should handle zero");
+}
+
+test "multi_let_mixed_types" {
+    let a: int = 42, b: string = "hello", c: f64 = 3.14;
+    expect_eq(a, 42, "mixed-types a should be 42");
+    expect_eq(b == "hello", true, "mixed-types b should be hello");
+    "mixed types compile";
+}
