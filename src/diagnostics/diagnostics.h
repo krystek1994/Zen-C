@@ -26,8 +26,6 @@ struct ParserContext;
 /**
  * @brief Fatal error (exits).
  */
-void zpanic(const char *fmt, ...);
-
 /**
  * @brief Fatal system error (e.g. OOM), prints "Fatal: " prefix.
  */

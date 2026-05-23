@@ -85,37 +85,6 @@ static void emit_json(const char *level, Token t, const char *msg, const char *s
     }
 }
 
-void zpanic(const char *fmt, ...)
-{
-    if (diag_cfg()->json_output)
-    {
-        char msg[MAX_ERROR_MSG_LEN];
-        va_list a;
-        va_start(a, fmt);
-        vsnprintf(msg, sizeof(msg), fmt, a);
-        va_end(a);
-        emit_json("error", (Token){0}, msg, NULL, DIAG_NONE);
-        g_error_count++;
-        if (diag_cfg()->mode_lsp)
-        {
-            return;
-        }
-        exit(1);
-    }
-    va_list a;
-    va_start(a, fmt);
-    fprintf(stderr, COLOR_RED "error: " COLOR_RESET COLOR_BOLD);
-    vfprintf(stderr, fmt, a);
-    fprintf(stderr, COLOR_RESET "\n");
-    va_end(a);
-    g_error_count++;
-    if (diag_cfg()->mode_lsp)
-    {
-        return;
-    }
-    exit(1);
-}
-
 void zfatal(const char *fmt, ...)
 {
     va_list a;
@@ -124,6 +93,10 @@ void zfatal(const char *fmt, ...)
     vfprintf(stderr, fmt, a);
     fprintf(stderr, "\n");
     va_end(a);
+    if (d_ctx.parser_ctx && d_ctx.parser_ctx->is_fault_tolerant)
+    {
+        return;
+    }
     if (diag_cfg()->mode_lsp)
     {
         return;

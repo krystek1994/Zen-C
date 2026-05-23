@@ -66,6 +66,11 @@ void register_plugin(ParserContext *ctx, const char *name, const char *alias)
             zmap_put(&ctx->imports.imported_plugins, alias ? alias : name, p);
             return;
         }
+        if (ctx->is_fault_tolerant)
+        {
+            // Fuzzing or LSP — recover gracefully
+            return;
+        }
         exit(1);
     }
 
