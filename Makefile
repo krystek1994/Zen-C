@@ -101,8 +101,34 @@ else
     endif
 endif
 
- # Source files read from src-sources.txt (single manifest shared by Makefile, CMakeLists.txt, build.bat)
-SRCS = $(shell cat src-sources.txt)
+ # Feature selection (default: all enabled)
+ # Override with ZC_LSP=0, ZC_REPL=0, etc. for smaller builds.
+ZC_LSP ?= 1
+ZC_REPL ?= 1
+ZC_PLUGINS ?= 1
+ZC_ZEN ?= 1
+ZC_BACKENDS ?= 1
+ZC_TRE ?= 1
+
+DEFINES += -DZC_HAS_LSP=$(ZC_LSP) -DZC_HAS_REPL=$(ZC_REPL)
+DEFINES += -DZC_HAS_PLUGINS=$(ZC_PLUGINS) -DZC_HAS_ZEN=$(ZC_ZEN)
+DEFINES += -DZC_HAS_CPP_BACKEND=$(ZC_BACKENDS)
+DEFINES += -DZC_HAS_CUDA_BACKEND=$(ZC_BACKENDS)
+DEFINES += -DZC_HAS_OBJC_BACKEND=$(ZC_BACKENDS)
+DEFINES += -DZC_HAS_JSON_BACKEND=$(ZC_BACKENDS)
+DEFINES += -DZC_HAS_LISP_BACKEND=$(ZC_BACKENDS)
+DEFINES += -DZC_HAS_DOT_BACKEND=$(ZC_BACKENDS)
+DEFINES += -DZC_HAS_ASTDUMP_BACKEND=$(ZC_BACKENDS)
+
+# Source files read from src-sources.txt, filtered by feature selection.
+ALL_SRCS := $(shell cat src-sources.txt)
+ZC_FILTER_LSP = $(if $(filter-out 1,$(ZC_LSP)),src/lsp/lsp_main.c src/lsp/lsp_analysis.c src/lsp/lsp_semantic.c src/lsp/lsp_index.c src/lsp/lsp_formatter.c src/lsp/lsp_project.c src/lsp/json_rpc.c)
+ZC_FILTER_REPL = $(if $(filter-out 1,$(ZC_REPL)),src/repl/% src/platform/console.c)
+ZC_FILTER_PLUGINS = $(if $(filter-out 1,$(ZC_PLUGINS)),src/plugins/% src/parser/utils/utils_plugins.c)
+ZC_FILTER_ZEN = $(if $(filter-out 1,$(ZC_ZEN)),src/zen/%)
+ZC_FILTER_BACKENDS = $(if $(filter-out 1,$(ZC_BACKENDS)),src/codegen/codegen_backend_cpp.c src/codegen/codegen_backend_cuda.c src/codegen/codegen_backend_objc.c src/codegen/codegen_backend_json.c src/codegen/codegen_backend_lisp.c src/codegen/codegen_backend_dot.c src/codegen/codegen_backend_astdump.c)
+ZC_FILTER_TRE = $(if $(filter-out 1,$(ZC_TRE)),std/third-party/tre/%)
+SRCS = $(filter-out $(ZC_FILTER_LSP) $(ZC_FILTER_REPL) $(ZC_FILTER_PLUGINS) $(ZC_FILTER_ZEN) $(ZC_FILTER_BACKENDS) $(ZC_FILTER_TRE),$(ALL_SRCS))
 
 OBJ_DIR = obj
 OBJS = $(patsubst %.c, $(OBJ_DIR)/%.o, $(SRCS))
@@ -534,6 +560,16 @@ coverage-report: coverage
 test-plugins: $(TARGET) $(PLUGINS)
 	./zc run tests/language/features/test_plugins_suite.zc
 
+# Convenience targets for modular builds
+core:
+	$(MAKE) ZC_LSP=0 ZC_REPL=0 ZC_PLUGINS=0 ZC_ZEN=0 ZC_BACKENDS=0
+
+lite:
+	$(MAKE) ZC_LSP=0 ZC_REPL=0 ZC_ZEN=0
+
+minimal:
+	$(MAKE) ZC_LSP=0 ZC_REPL=0 ZC_PLUGINS=0 ZC_ZEN=0 ZC_BACKENDS=0 ZC_TRE=0
+
 # Fuzzing
 FUZZ_TARGET = zc-fuzz
 FUZZ_CMPLOG_TARGET = zc-fuzz-cmplog
@@ -579,4 +615,4 @@ fuzz-clean:
 	rm -f $(FUZZ_TARGET) $(FUZZ_CMPLOG_TARGET)
 	rm -rf obj-fuzz obj-fuzz-cmplog
 
-.PHONY: all clean install uninstall install-ape uninstall-ape format format-check lint bench test test-misra test-tcc test-filcc test-lsp test-asan test-plugins zig clang filcc ape windows asan tsan msan lsan analyzer coverage coverage-report fuzz-build fuzz-run fuzz-clean
+.PHONY: all clean install uninstall install-ape uninstall-ape format format-check lint bench test test-misra test-tcc test-filcc test-lsp test-asan test-plugins zig clang filcc ape windows asan tsan msan lsan analyzer coverage coverage-report core lite minimal fuzz-build fuzz-run fuzz-clean

@@ -175,6 +175,31 @@ sudo env "PATH=$PATH" make install-ape
 ./out/bin/zc.com build hello.zc -o hello
 ```
 
+### Build Modular
+
+O Zen C é dividido em módulos opcionais. Use as flags `ZC_*` para selecionar recursos ao compilar:
+
+| Flag | Padrão | Exclui |
+|---|---|---|
+| `ZC_LSP=0` | 1 | Servidor LSP (~8 arquivos) |
+| `ZC_REPL=0` | 1 | REPL interativo (~6 arquivos) |
+| `ZC_PLUGINS=0` | 1 | Sistema de plugins |
+| `ZC_ZEN=0` | 1 | Modos `--doc` / `--facts` |
+| `ZC_BACKENDS=0` | 1 | Backends não-C (JSON, Lisp, etc.) |
+| `ZC_TRE=0` | 1 | Biblioteca de regex TRE |
+
+```bash
+make                     # Todos os recursos (3.3 MB)
+make lite                # Sem LSP, REPL ou Zen (2.9 MB)
+make core                # Apenas compilador (2.7 MB)
+make minimal             # Mínimo absoluto (2.6 MB)
+
+# Seleção personalizada:
+make ZC_LSP=0 ZC_REPL=0  # Excluir LSP e REPL
+```
+
+Comandos desabilitados mostram uma mensagem clara em vez de falhar: `zc lsp` → "LSP support not included".
+
 ### Uso
 
 ```bash

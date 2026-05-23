@@ -113,13 +113,27 @@ void codegen_init_backends(void)
         return;
     }
     codegen_register_backend(&c_backend);
+#if ZC_HAS_CPP_BACKEND
     codegen_register_cpp_backend();
+#endif
+#if ZC_HAS_CUDA_BACKEND
     codegen_register_cuda_backend();
+#endif
+#if ZC_HAS_OBJC_BACKEND
     codegen_register_objc_backend();
+#endif
+#if ZC_HAS_JSON_BACKEND
     codegen_register_json_backend();
+#endif
+#if ZC_HAS_LISP_BACKEND
     codegen_register_lisp_backend();
+#endif
+#if ZC_HAS_DOT_BACKEND
     codegen_register_dot_backend();
+#endif
+#if ZC_HAS_ASTDUMP_BACKEND
     codegen_register_astdump_backend();
+#endif
 }
 
 void codegen_node(ParserContext *ctx, ASTNode *root)

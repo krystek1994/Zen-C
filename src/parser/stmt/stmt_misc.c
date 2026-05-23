@@ -903,7 +903,10 @@ ASTNode *parse_macro_call(ParserContext *ctx, Lexer *l, char *macro_name)
     memcpy(body, body_start, body_len);
     body[body_len] = '\0';
 
-    const char *plugin_name = resolve_plugin(ctx, macro_name);
+    const char *plugin_name = NULL;
+#if ZC_HAS_PLUGINS
+    plugin_name = resolve_plugin(ctx, macro_name);
+#endif
     if (!plugin_name)
     {
         char err[MAX_SHORT_MSG_LEN];

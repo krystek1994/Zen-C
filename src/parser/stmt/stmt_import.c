@@ -450,7 +450,9 @@ ASTNode *parse_import(ParserContext *ctx, Lexer *l, int is_re_export)
             alias = token_strdup(alias_tok);
         }
 
+#if ZC_HAS_PLUGINS
         register_plugin(ctx, plugin_name, alias);
+#endif
 
         if (lexer_peek(l).type == TOK_SEMICOLON)
         {

@@ -176,6 +176,31 @@ sudo env "PATH=$PATH" make install-ape
 ./out/bin/zc.com build hello.zc -o hello
 ```
 
+### 模块化构建
+
+Zen C 分为可选模块。使用 `ZC_*` 标志在构建时选择功能：
+
+| 标志 | 默认值 | 排除项 |
+|---|---|---|
+| `ZC_LSP=0` | 1 | LSP 服务器 (~8 个文件) |
+| `ZC_REPL=0` | 1 | 交互式 REPL (~6 个文件) |
+| `ZC_PLUGINS=0` | 1 | 插件系统 |
+| `ZC_ZEN=0` | 1 | `--doc` / `--facts` 模式 |
+| `ZC_BACKENDS=0` | 1 | 非 C 后端 (JSON, Lisp 等) |
+| `ZC_TRE=0` | 1 | TRE 正则表达式库 |
+
+```bash
+make                     # 所有功能 (3.3 MB)
+make lite                # 无 LSP、REPL、Zen (2.9 MB)
+make core                # 仅编译器 (2.7 MB)
+make minimal             # 最小构建 (2.6 MB)
+
+# 自定义选择：
+make ZC_LSP=0 ZC_REPL=0  # 排除 LSP 和 REPL
+```
+
+禁用的命令会显示清晰的提示信息而不会崩溃：`zc lsp` → "LSP support not included"。
+
 ### 用法
 
 ```bash

@@ -2,10 +2,16 @@
 #include "codegen/codegen.h"
 #include "parser/parser.h"
 #include "constants.h"
+#if ZC_HAS_PLUGINS
 #include "plugins/plugin_manager.h"
+#endif
+#if ZC_HAS_REPL
 #include "repl/repl.h"
+#endif
+#if ZC_HAS_ZEN
 #include "zen/zen_doc.h"
 #include "zen/zen_facts.h"
+#endif
 #include "zprep.h"
 #include "analysis/typecheck.h"
 #include "codegen/compat.h"
@@ -33,7 +39,9 @@ static void handle_crash(int sig)
 }
 
 // Forward decl for LSP
+#if ZC_HAS_LSP
 int lsp_main(int argc, char **argv);
+#endif
 int main(int argc, char **argv)
 {
     signal(SIGSEGV, handle_crash);
@@ -144,12 +152,22 @@ int main(int argc, char **argv)
 
     if (strcmp(command, "lsp") == 0)
     {
+#if ZC_HAS_LSP
         return lsp_main(argc, argv);
+#else
+        fprintf(stderr, "LSP support not included in this build\n");
+        return 1;
+#endif
     }
     else if (strcmp(command, "repl") == 0)
     {
+#if ZC_HAS_REPL
         run_repl(argv[0], argc, argv); // Pass self path and args for -c support
         return 0;
+#else
+        fprintf(stderr, "REPL support not included in this build\n");
+        return 1;
+#endif
     }
 
     else if (strcmp(command, "transpile") == 0 || strcmp(command, "-c") == 0)
