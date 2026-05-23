@@ -13,11 +13,13 @@
 #include <fcntl.h>
 
 extern ZenCompiler g_compiler;
-extern ParserContext *g_parser_ctx;
 
 static int initialized = 0;
 
-static void initialize()
+// LibFuzzer entry point — called by the fuzzer runtime
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
+
+static void initialize(void)
 {
     if (initialized)
         return;
@@ -44,7 +46,7 @@ static void fuzz_noop_error(void *data, Token t, const char *msg)
     (void)msg;
 }
 
-int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+__attribute__((used)) int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     if (size == 0)
         return 0;
@@ -66,7 +68,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     ctx.config = &g_compiler.config;
     ctx.current_filename = "fuzz_input.zc";
     module_state_init(&ctx.imports);
-    g_parser_ctx = &ctx;
+    token_set_parser_ctx(&ctx);
 
     scan_build_directives(&ctx, src);
 

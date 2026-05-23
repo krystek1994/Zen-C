@@ -595,7 +595,9 @@ fuzz-cmplog-build:
 # LibFuzzer targets
 fuzz-libfuzzer-build:
 	@$(MKDIR) $(OBJ_DIR)/fuzz-libfuzzer
-	clang $(CFLAGS) -fsanitize=fuzzer,address,undefined $(filter-out src/main.c,$(SRCS)) fuzz/harness.c -o zc-fuzz-libfuzzer $(LIBS)
+	clang $(filter-out -Wduplicated-cond -Wlogical-op,$(CFLAGS)) \
+	      -fsanitize=fuzzer,address,undefined \
+	      $(filter-out src/main.c,$(SRCS)) fuzz/harness.c -o zc-fuzz-libfuzzer $(LIBS)
 	@echo "=> LibFuzzer target built: zc-fuzz-libfuzzer"
 
 fuzz-corpus:
