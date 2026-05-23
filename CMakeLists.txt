@@ -100,8 +100,25 @@ if(ZC_USE_JIT)
     endif()
 endif()
 
-# --- Plugin System Toggle ---
+# --- Feature Flags ---
 option(ZC_NO_PLUGINS "Disable the plugin system entirely" OFF)
+option(ZC_NO_LSP "Disable LSP server" OFF)
+option(ZC_NO_REPL "Disable interactive REPL" OFF)
+option(ZC_NO_ZEN "Disable Zen facts/docs" OFF)
+option(ZC_NO_BACKENDS "Disable non-C backends" OFF)
+
+add_compile_definitions(ZC_HAS_LSP=$<NOT:$<BOOL:${ZC_NO_LSP}>>)
+add_compile_definitions(ZC_HAS_REPL=$<NOT:$<BOOL:${ZC_NO_REPL}>>)
+add_compile_definitions(ZC_HAS_PLUGINS=$<NOT:$<BOOL:${ZC_NO_PLUGINS}>>)
+add_compile_definitions(ZC_HAS_ZEN=$<NOT:$<BOOL:${ZC_NO_ZEN}>>)
+add_compile_definitions(ZC_HAS_CPP_BACKEND=$<NOT:$<BOOL:${ZC_NO_BACKENDS}>>)
+add_compile_definitions(ZC_HAS_CUDA_BACKEND=$<NOT:$<BOOL:${ZC_NO_BACKENDS}>>)
+add_compile_definitions(ZC_HAS_OBJC_BACKEND=$<NOT:$<BOOL:${ZC_NO_BACKENDS}>>)
+add_compile_definitions(ZC_HAS_JSON_BACKEND=$<NOT:$<BOOL:${ZC_NO_BACKENDS}>>)
+add_compile_definitions(ZC_HAS_LISP_BACKEND=$<NOT:$<BOOL:${ZC_NO_BACKENDS}>>)
+add_compile_definitions(ZC_HAS_DOT_BACKEND=$<NOT:$<BOOL:${ZC_NO_BACKENDS}>>)
+add_compile_definitions(ZC_HAS_ASTDUMP_BACKEND=$<NOT:$<BOOL:${ZC_NO_BACKENDS}>>)
+
 if(ZC_NO_PLUGINS)
     add_compile_definitions(ZC_NO_PLUGINS)
     message(STATUS "Plugin system disabled.")
