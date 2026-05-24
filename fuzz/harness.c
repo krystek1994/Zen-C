@@ -16,6 +16,16 @@ extern ZenCompiler g_compiler;
 
 static int initialized = 0;
 
+static void free_everything(void)
+{
+    zvec_free_Str(&g_compiler.config.include_paths);
+    zvec_free_Str(&g_compiler.config.cfg_defines);
+    zvec_free_Str(&g_compiler.config.c_files);
+    zvec_free_Str(&g_compiler.config.extra_files);
+    zvec_free_Str(&g_compiler.config.backend_opts);
+    zarena_free(&g_compiler.arena);
+}
+
 // LibFuzzer entry point — called by the fuzzer runtime
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
@@ -34,6 +44,8 @@ static void initialize(void)
     zarena_init(&g_compiler.arena);
 
     init_builtins();
+
+    atexit(free_everything);
 
     initialized = 1;
 }
@@ -103,6 +115,13 @@ __attribute__((used)) int LLVMFuzzerTestOneInput(const uint8_t *data, size_t siz
 
     fclose(ctx.cg.hoist_out);
     zarena_reset(&g_compiler.arena);
+
+    // Reset config vectors (free system-heap buffers, clear pointers)
+    zvec_free_Str(&g_compiler.config.include_paths);
+    zvec_free_Str(&g_compiler.config.cfg_defines);
+    zvec_free_Str(&g_compiler.config.c_files);
+    zvec_free_Str(&g_compiler.config.extra_files);
+    zvec_free_Str(&g_compiler.config.backend_opts);
     clear_registered_traits();
 
     return 0;

@@ -540,6 +540,16 @@ ASTNode *parse_import(ParserContext *ctx, Lexer *l, int is_re_export)
         else
         {
             zpanic_at(t, "Could not find module: %s", fn);
+            for (size_t _c = 0; _c < symbols.length; _c++)
+            {
+                zfree(symbols.data[_c]);
+                if (aliases.data[_c])
+                {
+                    zfree(aliases.data[_c]);
+                }
+            }
+            zvec_free_Str(&symbols);
+            zvec_free_Str(&aliases);
             zfree(fn);
             return NULL;
         }
@@ -556,6 +566,16 @@ ASTNode *parse_import(ParserContext *ctx, Lexer *l, int is_re_export)
 
     if (is_file_imported(ctx, fn))
     {
+        for (size_t _c = 0; _c < symbols.length; _c++)
+        {
+            zfree(symbols.data[_c]);
+            if (aliases.data[_c])
+            {
+                zfree(aliases.data[_c]);
+            }
+        }
+        zvec_free_Str(&symbols);
+        zvec_free_Str(&aliases);
         zfree(fn);
         return NULL;
     }
@@ -563,6 +583,16 @@ ASTNode *parse_import(ParserContext *ctx, Lexer *l, int is_re_export)
     if (zmap_get(&ctx->imports.currently_parsing, fn))
     {
         zpanic_at(t, "Circular import detected: '%s'", fn);
+        for (size_t _c = 0; _c < symbols.length; _c++)
+        {
+            zfree(symbols.data[_c]);
+            if (aliases.data[_c])
+            {
+                zfree(aliases.data[_c]);
+            }
+        }
+        zvec_free_Str(&symbols);
+        zvec_free_Str(&aliases);
         zfree(fn);
         return NULL;
     }
@@ -632,6 +662,16 @@ ASTNode *parse_import(ParserContext *ctx, Lexer *l, int is_re_export)
         ASTNode *n = ast_create(NODE_INCLUDE);
         n->include.path = xstrdup(fn);
         n->include.is_system = 0;
+        for (size_t _c = 0; _c < symbols.length; _c++)
+        {
+            zfree(symbols.data[_c]);
+            if (aliases.data[_c])
+            {
+                zfree(aliases.data[_c]);
+            }
+        }
+        zvec_free_Str(&symbols);
+        zvec_free_Str(&aliases);
         return n;
     }
 
@@ -643,6 +683,16 @@ ASTNode *parse_import(ParserContext *ctx, Lexer *l, int is_re_export)
             if (ctx->config->mode_lsp)
             {
                 zwarn_at(t, "LSP: Import not found: %s", fn);
+                for (size_t _c = 0; _c < symbols.length; _c++)
+                {
+                    zfree(symbols.data[_c]);
+                    if (aliases.data[_c])
+                    {
+                        zfree(aliases.data[_c]);
+                    }
+                }
+                zvec_free_Str(&symbols);
+                zvec_free_Str(&aliases);
                 ASTNode *dummy = ast_create(NODE_BLOCK);
                 dummy->block.statements = NULL;
                 return dummy;
@@ -706,19 +756,16 @@ ASTNode *parse_import(ParserContext *ctx, Lexer *l, int is_re_export)
         zfree(temp_module_prefix);
     }
 
-    if (is_selective)
+    for (size_t k = 0; k < symbols.length; k++)
     {
-        for (size_t k = 0; k < symbols.length; k++)
+        zfree(symbols.data[k]);
+        if (aliases.data[k])
         {
-            zfree(symbols.data[k]);
-            if (aliases.data[k])
-            {
-                zfree(aliases.data[k]);
-            }
+            zfree(aliases.data[k]);
         }
-        zvec_free_Str(&symbols);
-        zvec_free_Str(&aliases);
     }
+    zvec_free_Str(&symbols);
+    zvec_free_Str(&aliases);
 
     if (alias)
     {
