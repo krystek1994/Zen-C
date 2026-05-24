@@ -60,6 +60,8 @@ ASTNode *parse_asm(ParserContext *ctx, Lexer *l)
     if (lexer_peek(l).type != TOK_LBRACE)
     {
         zpanic_at(lexer_peek(l), "Expected { after asm");
+        return NULL;
+        return NULL;
     }
     lexer_next(l);
 
@@ -254,6 +256,8 @@ ASTNode *parse_asm(ParserContext *ctx, Lexer *l)
                 if (lexer_peek(l).type != TOK_LPAREN)
                 {
                     zpanic_at(lexer_peek(l), "Expected ( after output mode");
+                    return NULL;
+                    return NULL;
                 }
                 lexer_next(l);
 
@@ -261,11 +265,15 @@ ASTNode *parse_asm(ParserContext *ctx, Lexer *l)
                 if (var.type != TOK_IDENT)
                 {
                     zpanic_at(var, "Expected variable name");
+                    return NULL;
+                    return NULL;
                 }
 
                 if (lexer_peek(l).type != TOK_RPAREN)
                 {
                     zpanic_at(lexer_peek(l), "Expected ) after variable");
+                    return NULL;
+                    return NULL;
                 }
                 lexer_next(l);
 
@@ -319,6 +327,8 @@ ASTNode *parse_asm(ParserContext *ctx, Lexer *l)
                 if (lexer_peek(l).type != TOK_LPAREN)
                 {
                     zpanic_at(lexer_peek(l), "Expected ( after in");
+                    return NULL;
+                    return NULL;
                 }
                 lexer_next(l);
 
@@ -326,11 +336,15 @@ ASTNode *parse_asm(ParserContext *ctx, Lexer *l)
                 if (var.type != TOK_IDENT)
                 {
                     zpanic_at(var, "Expected variable name");
+                    return NULL;
+                    return NULL;
                 }
 
                 if (lexer_peek(l).type != TOK_RPAREN)
                 {
                     zpanic_at(lexer_peek(l), "Expected ) after variable");
+                    return NULL;
+                    return NULL;
                 }
                 lexer_next(l);
 
@@ -377,6 +391,8 @@ ASTNode *parse_asm(ParserContext *ctx, Lexer *l)
                 if (lexer_peek(l).type != TOK_LPAREN)
                 {
                     zpanic_at(lexer_peek(l), "Expected ( after clobber");
+                    return NULL;
+                    return NULL;
                 }
                 lexer_next(l);
 
@@ -384,11 +400,15 @@ ASTNode *parse_asm(ParserContext *ctx, Lexer *l)
                 if (clob.type != TOK_STRING)
                 {
                     zpanic_at(clob, "Expected string literal for clobber");
+                    return NULL;
+                    return NULL;
                 }
 
                 if (lexer_peek(l).type != TOK_RPAREN)
                 {
                     zpanic_at(lexer_peek(l), "Expected ) after clobber string");
+                    return NULL;
+                    return NULL;
                 }
                 lexer_next(l);
 
@@ -413,6 +433,8 @@ ASTNode *parse_asm(ParserContext *ctx, Lexer *l)
     if (lexer_peek(l).type != TOK_RBRACE)
     {
         zpanic_at(lexer_peek(l), "Expected } at end of asm block");
+        return NULL;
+        return NULL;
     }
     lexer_next(l);
 

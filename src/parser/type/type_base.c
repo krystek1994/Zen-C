@@ -33,6 +33,7 @@ Type *parse_type_base(ParserContext *ctx, Lexer *l)
             if (t.type != TOK_IDENT)
             {
                 zpanic_at(t, "Expected identifier after struct/enum");
+                return NULL;
             }
         }
 
@@ -89,6 +90,7 @@ Type *parse_type_base(ParserContext *ctx, Lexer *l)
             if (next.type != TOK_IDENT)
             {
                 zpanic_at(t, "Expected identifier after ::");
+                return NULL;
             }
 
             char *suffix = token_strdup(next);
@@ -350,6 +352,7 @@ Type *parse_type_base(ParserContext *ctx, Lexer *l)
                 else
                 {
                     zpanic_at(t, "Expected > after generic");
+                    return NULL;
                 }
 
                 // Call multi-arg instantiation
@@ -408,6 +411,7 @@ Type *parse_type_base(ParserContext *ctx, Lexer *l)
                 else
                 {
                     zpanic_at(t, "Expected > after generic");
+                    return NULL;
                 }
 
                 char *unmangled_arg = type_to_string(first_arg);
@@ -464,10 +468,13 @@ Type *parse_type_base(ParserContext *ctx, Lexer *l)
             {
                 zpanic_at(size_expr->token,
                           "Array size must be a compile-time constant or integer literal");
+                return NULL;
+                return NULL;
             }
             if (lexer_next(l).type != TOK_RBRACKET)
             {
                 zpanic_at(lexer_peek(l), "Expected ] after array size");
+                return NULL;
             }
 
             Type *arr = type_new(TYPE_ARRAY);
@@ -481,6 +488,7 @@ Type *parse_type_base(ParserContext *ctx, Lexer *l)
         if (lexer_next(l).type != TOK_RBRACKET)
         {
             zpanic_at(lexer_peek(l), "Expected ] in type");
+            return NULL;
         }
 
         char *inner_str = type_to_string(inner);
@@ -535,6 +543,7 @@ Type *parse_type_base(ParserContext *ctx, Lexer *l)
         if (lexer_next(l).type != TOK_RPAREN)
         {
             zpanic_at(lexer_peek(l), "Expected ) in tuple");
+            return NULL;
         }
 
         register_tuple_with_types(ctx, sig, type_names, type_count);

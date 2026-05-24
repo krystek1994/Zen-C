@@ -28,6 +28,8 @@ ASTNode *parse_match(ParserContext *ctx, Lexer *l)
     if (t_brace.type != TOK_LBRACE)
     {
         zpanic_at(t_brace, "Expected '{' in match");
+        return NULL;
+        return NULL;
         if (ctx->is_fault_tolerant)
         {
             ASTNode *node = ast_create(NODE_MATCH);
@@ -85,7 +87,7 @@ ASTNode *parse_match(ParserContext *ctx, Lexer *l)
                     lexer_next(l); // eat ::
                     Token suffix = lexer_next(l);
                     char *tmp = xmalloc(strlen(p_str) + suffix.len + 3);
-                    sprintf(tmp, "%s__%.*s", p_str, suffix.len, suffix.start);
+                    sprintf(tmp, "%s__%.*s", p_str, suffix.len, suffix.start); /* safe */
                     zfree(p_str);
                     p_str = tmp;
                 }
@@ -125,7 +127,8 @@ ASTNode *parse_match(ParserContext *ctx, Lexer *l)
                 char *end_str = token_strdup(end_tok);
 
                 char *range_str = xmalloc(strlen(p_str) + strlen(end_str) + 5);
-                sprintf(range_str, "%s%s%s", p_str, is_inclusive ? "..=" : "..", end_str);
+                sprintf(range_str, "%s%s%s", p_str, is_inclusive ? "..=" : "..",
+                        end_str); /* safe */
                 zfree(p_str);
                 zfree(end_str);
                 p_str = range_str;
@@ -235,10 +238,14 @@ ASTNode *parse_match(ParserContext *ctx, Lexer *l)
             if (is_brace && end.type != TOK_RBRACE)
             {
                 zpanic_at(end, "Expected }");
+                return NULL;
+                return NULL;
             }
             else if (!is_brace && end.type != TOK_RPAREN)
             {
                 zpanic_at(end, "Expected )");
+                return NULL;
+                return NULL;
             }
             is_destructure = 1;
         }
@@ -253,6 +260,8 @@ ASTNode *parse_match(ParserContext *ctx, Lexer *l)
         if (lexer_next(l).type != TOK_ARROW)
         {
             zpanic_at(lexer_peek(l), "Expected => after match pattern");
+            return NULL;
+            return NULL;
             if (ctx->is_fault_tolerant)
             {
                 while (lexer_peek(l).type != TOK_RBRACE && lexer_peek(l).type != TOK_COMMA &&
@@ -358,7 +367,7 @@ ASTNode *parse_match(ParserContext *ctx, Lexer *l)
                     binding_type_info = ptr;
 
                     char *ptr_s = xmalloc(strlen(binding_type) + 2);
-                    sprintf(ptr_s, "%s*", binding_type);
+                    sprintf(ptr_s, "%s*", binding_type); /* safe */
                     binding_type = ptr_s;
                 }
 

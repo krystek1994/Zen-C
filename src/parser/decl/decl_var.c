@@ -118,11 +118,13 @@ ASTNode *parse_var_decl(ParserContext *ctx, Lexer *l, int is_export)
             if (next.type != TOK_COMMA)
             {
                 zpanic_at(next, "Expected comma in destructuring list");
+                return NULL;
             }
         }
         if (lexer_next(l).type != TOK_OP)
         {
             zpanic_at(lexer_peek(l), "Expected =");
+            return NULL;
         }
         ASTNode *init = parse_expression(ctx, l);
         if (lexer_peek(l).type == TOK_SEMICOLON)
@@ -193,12 +195,14 @@ ASTNode *parse_var_decl(ParserContext *ctx, Lexer *l, int is_export)
             if (next.type != TOK_COMMA)
             {
                 zpanic_at(next, "Expected comma in struct pattern");
+                return NULL;
             }
         }
 
         if (lexer_next(l).type != TOK_OP)
         {
             zpanic_at(lexer_peek(l), "Expected =");
+            return NULL;
         }
         ASTNode *init = parse_expression(ctx, l);
         if (lexer_peek(l).type == TOK_SEMICOLON)
@@ -228,11 +232,13 @@ ASTNode *parse_var_decl(ParserContext *ctx, Lexer *l, int is_export)
         if (lexer_next(l).type != TOK_RPAREN)
         {
             zpanic_at(lexer_peek(l), "Expected ')' in guard pattern");
+            return NULL;
         }
 
         if (lexer_next(l).type != TOK_OP)
         {
             zpanic_at(lexer_peek(l), "Expected '=' after guard pattern");
+            return NULL;
         }
 
         ASTNode *init = parse_expression(ctx, l);
@@ -241,6 +247,7 @@ ASTNode *parse_var_decl(ParserContext *ctx, Lexer *l, int is_export)
         if (t.type != TOK_IDENT || strncmp(t.start, "else", 4) != 0)
         {
             zpanic_at(t, "Expected 'else' in guard statement");
+            return NULL;
         }
 
         ASTNode *else_blk;
@@ -434,6 +441,7 @@ ASTNode *parse_var_decl(ParserContext *ctx, Lexer *l, int is_export)
                 if (!ntype && !ninit)
                 {
                     zpanic_at(ntok, "Variable '%s' requires a type or initializer", nname);
+                    return NULL;
                 }
                 add_symbol_with_token(ctx, nname, ntype, ntype_obj, ntok, is_export);
                 ASTNode *nn = ast_create(NODE_VAR_DECL);
@@ -520,6 +528,7 @@ ASTNode *parse_var_decl(ParserContext *ctx, Lexer *l, int is_export)
             else if (init->type == NODE_EXPR_SLICE)
             {
                 zpanic_at(init->token, "Slice Node has NO Type Info!");
+                return NULL;
             }
             // Fallbacks for literals
             else if (init->type == NODE_EXPR_LITERAL)
@@ -552,6 +561,7 @@ ASTNode *parse_var_decl(ParserContext *ctx, Lexer *l, int is_export)
     if (!type && !init)
     {
         zpanic_at(name_tok, "Variable '%s' requires a type or initializer", name);
+        return NULL;
     }
 
     // Register in symbol table with actual token
@@ -610,6 +620,7 @@ ASTNode *parse_var_decl(ParserContext *ctx, Lexer *l, int is_export)
                 char *got = type_to_string(t);
                 zpanic_at(init->token, "Type validation failed. Expected '%s', but got '%s'",
                           expected, got);
+                return NULL;
                 zfree(expected);
                 zfree(got);
             }
@@ -738,6 +749,7 @@ ASTNode *parse_var_decl(ParserContext *ctx, Lexer *l, int is_export)
             if (!next_type && !next_init)
             {
                 zpanic_at(next_name_tok, "Variable '%s' requires a type or initializer", next_name);
+                return NULL;
             }
 
             // Type inference from init

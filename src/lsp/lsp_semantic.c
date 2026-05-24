@@ -54,7 +54,12 @@ static void builder_push(TokenBuilder *b, int line, int col, int length, int typ
     if (b->count >= b->capacity)
     {
         b->capacity *= 2;
-        b->tokens = realloc(b->tokens, sizeof(SemanticToken) * b->capacity);
+        SemanticToken *new_tokens = realloc(b->tokens, sizeof(SemanticToken) * b->capacity);
+        if (!new_tokens)
+        {
+            return;
+        }
+        b->tokens = new_tokens;
     }
     SemanticToken *t = &b->tokens[b->count++];
     t->line = line;

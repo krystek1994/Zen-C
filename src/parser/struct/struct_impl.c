@@ -32,6 +32,7 @@ ASTNode *parse_impl(ParserContext *ctx, Lexer *l)
         if (lexer_next(l).type != TOK_RANGLE)
         {
             zpanic_at(lexer_peek(l), "Expected >");
+            return NULL;
         }
         register_generic(ctx, gen_param);
     }
@@ -56,6 +57,7 @@ ASTNode *parse_impl(ParserContext *ctx, Lexer *l)
         if (lexer_next(l).type != TOK_RANGLE)
         {
             zpanic_at(lexer_peek(l), "Expected >");
+            return NULL;
         }
         register_generic(ctx, gen_param);
     }
@@ -67,6 +69,7 @@ ASTNode *parse_impl(ParserContext *ctx, Lexer *l)
         if (lexer_next(l).type != TOK_RANGLE)
         {
             zpanic_at(lexer_peek(l), "Expected >");
+            return NULL;
         }
     }
 
@@ -95,6 +98,7 @@ ASTNode *parse_impl(ParserContext *ctx, Lexer *l)
             if (lexer_next(l).type != TOK_RANGLE)
             {
                 zpanic_at(lexer_peek(l), "Expected > in impl struct generic");
+                return NULL;
             }
             register_generic(ctx, target_gen_param);
         }
@@ -107,6 +111,7 @@ ASTNode *parse_impl(ParserContext *ctx, Lexer *l)
                       "Incorrect usage of impl. Did you mean 'impl %s for %s'? Syntax is 'impl "
                       "<Trait> for <Struct>'",
                       name2, name1);
+            return NULL;
         }
 
         // Auto-import std/mem.zc if implementing Drop, Copy, or Clone traits
@@ -283,6 +288,7 @@ ASTNode *parse_impl(ParserContext *ctx, Lexer *l)
                 else
                 {
                     zpanic_at(lexer_peek(l), "Expected 'fn' after 'async'");
+                    return NULL;
                 }
             }
             else
@@ -373,6 +379,7 @@ ASTNode *parse_impl(ParserContext *ctx, Lexer *l)
             if (lexer_next(l).type != TOK_LBRACE)
             {
                 zpanic_at(lexer_peek(l), "Expected {");
+                return NULL;
             }
             char *full_struct_name = xmalloc(strlen(name1) + strlen(gen_param) + 3);
             snprintf(full_struct_name, strlen(name1) + strlen(gen_param) + 3, "%s<%s>", name1,
@@ -486,6 +493,7 @@ ASTNode *parse_impl(ParserContext *ctx, Lexer *l)
                     else
                     {
                         zpanic_at(lexer_peek(l), "Expected 'fn' after 'async'");
+                        return NULL;
                     }
                 }
                 else
@@ -536,6 +544,10 @@ ASTNode *parse_impl(ParserContext *ctx, Lexer *l)
                 if (lexer_peek(l).type == TOK_IDENT && strncmp(lexer_peek(l).start, "fn", 2) == 0)
                 {
                     ASTNode *f = parse_function(ctx, l, 0, 0, attrs.link_name, 0);
+                    if (!f)
+                    {
+                        return NULL;
+                    }
 
                     {
                         char tmp[MAX_MANGLED_NAME_LEN];

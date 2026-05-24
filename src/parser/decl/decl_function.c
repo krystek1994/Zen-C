@@ -48,6 +48,7 @@ ASTNode *parse_function(ParserContext *ctx, Lexer *l, int is_async, int is_exter
             if (gt.type != TOK_IDENT)
             {
                 zpanic_at(gt, "Expected generic parameter name");
+                return NULL;
             }
             char *s = token_strdup(gt);
 
@@ -67,6 +68,7 @@ ASTNode *parse_function(ParserContext *ctx, Lexer *l, int is_async, int is_exter
             if (is_known_generic(ctx, s))
             {
                 zpanic_at(gt, "Generic parameter '%s' shadows an existing generic parameter", s);
+                return NULL;
             }
 
             zfree(s);
@@ -82,6 +84,7 @@ ASTNode *parse_function(ParserContext *ctx, Lexer *l, int is_async, int is_exter
         if (lexer_next(l).type != TOK_RANGLE)
         {
             zpanic_at(lexer_peek(l), "Expected >");
+            return NULL;
         }
         gen_param = xstrdup(buf);
         zfree(buf);
@@ -135,6 +138,7 @@ ASTNode *parse_function(ParserContext *ctx, Lexer *l, int is_async, int is_exter
     else if (lexer_peek(l).type == TOK_COLON)
     {
         zpanic_at(lexer_peek(l), "Functions use '->' for the return type, not ':'");
+        return NULL;
     }
 
     extern char *curr_func_ret;
@@ -148,7 +152,8 @@ ASTNode *parse_function(ParserContext *ctx, Lexer *l, int is_async, int is_exter
     {
         char *prefixed_name =
             xmalloc(strlen(ctx->imports.current_module_prefix) + strlen(name) + 3);
-        sprintf(prefixed_name, "%s__%s", ctx->imports.current_module_prefix, name);
+        sprintf(prefixed_name, "%s__%s", ctx->imports.current_module_prefix,
+                name); /* TODO: check buffer size */
         zfree(name);
         name = prefixed_name;
     }
@@ -187,6 +192,7 @@ ASTNode *parse_function(ParserContext *ctx, Lexer *l, int is_async, int is_exter
     else
     {
         zpanic_at(next_tok, "Expected '{' or ';' after function signature");
+        return NULL;
     }
 
     // Check for unused parameters
@@ -286,11 +292,11 @@ char *patch_self_args(const char *args, const char *struct_name)
     // Check if it starts with "const void* self" or "void* self"
     if (strncmp(args, "const void* self", 16) == 0)
     {
-        sprintf(new_args, "const %s* self%s", safe_name, args + 16);
+        sprintf(new_args, "const %s* self%s", safe_name, args + 16); /* safe */
     }
     else if (strncmp(args, "void* self", 10) == 0)
     {
-        sprintf(new_args, "%s* self%s", safe_name, args + 10);
+        sprintf(new_args, "%s* self%s", safe_name, args + 10); /* safe */
     }
     else
     {

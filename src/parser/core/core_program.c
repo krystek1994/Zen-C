@@ -133,6 +133,8 @@ ASTNode *parse_program_nodes(ParserContext *ctx, Lexer *l)
                 else
                 {
                     zpanic_at(next, "Expected 'fn' after 'inline'");
+                    return NULL;
+                    return NULL;
                 }
             }
             else if (0 == strncmp(t.start, "fn", 2) && 2 == t.len)
@@ -204,6 +206,8 @@ ASTNode *parse_program_nodes(ParserContext *ctx, Lexer *l)
                 else
                 {
                     zpanic_at(next, "Expected 'let' after 'static' in global scope");
+                    return NULL;
+                    return NULL;
                 }
             }
             else if (t.len == 3 && strncmp(t.start, "let", 3) == 0)
@@ -287,6 +291,8 @@ ASTNode *parse_program_nodes(ParserContext *ctx, Lexer *l)
                 if (lexer_peek(l).type != TOK_LBRACE)
                 {
                     zpanic_at(lexer_peek(l), "Expected { after raw");
+                    return NULL;
+                    return NULL;
                 }
                 lexer_next(l);
 
@@ -299,6 +305,8 @@ ASTNode *parse_program_nodes(ParserContext *ctx, Lexer *l)
                     if (inner_t.type == TOK_EOF)
                     {
                         zpanic_at(inner_t, "Unexpected EOF in raw block");
+                        return NULL;
+                        return NULL;
                     }
                     if (inner_t.type == TOK_LBRACE)
                     {
@@ -347,6 +355,8 @@ ASTNode *parse_program_nodes(ParserContext *ctx, Lexer *l)
             else
             {
                 zpanic_at(next, "Expected 'struct' or 'alias' after 'opaque'");
+                return NULL;
+                return NULL;
             }
         }
         else if (t.type == TOK_ALIAS)
@@ -364,6 +374,8 @@ ASTNode *parse_program_nodes(ParserContext *ctx, Lexer *l)
             else
             {
                 zpanic_at(next, "Expected 'fn' after 'async'");
+                return NULL;
+                return NULL;
             }
         }
         else if (t.type == TOK_UNION)

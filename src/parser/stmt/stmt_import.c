@@ -209,7 +209,7 @@ static void try_parse_c_struct_decl(ParserContext *ctx, const char *line)
     {
         const char *c_keyword = is_union ? "union" : "struct";
         char *c_type = xmalloc(strlen(c_keyword) + 1 + tag_len + 1);
-        sprintf(c_type, "%s %s", c_keyword, tag_name);
+        sprintf(c_type, "%s %s", c_keyword, tag_name); /* safe */
         register_type_alias(ctx, tag_name, c_type, NULL, 1, NULL, TOKEN_UNKNOWN, 0);
         register_extern_symbol(ctx, tag_name);
         zfree(c_type);
@@ -417,6 +417,7 @@ ASTNode *parse_import(ParserContext *ctx, Lexer *l, int is_re_export)
         if (plugin_tok.type != TOK_STRING)
         {
             zpanic_at(plugin_tok, "Expected string literal after 'import plugin'");
+            return NULL;
         }
 
         char *plugin_name = token_get_string_content(plugin_tok);
@@ -446,6 +447,7 @@ ASTNode *parse_import(ParserContext *ctx, Lexer *l, int is_re_export)
             if (alias_tok.type != TOK_IDENT)
             {
                 zpanic_at(alias_tok, "Expected identifier after 'as'");
+                return NULL;
             }
             alias = token_strdup(alias_tok);
         }
@@ -491,6 +493,7 @@ ASTNode *parse_import(ParserContext *ctx, Lexer *l, int is_re_export)
             if (sym_tok.type != TOK_IDENT)
             {
                 zpanic_at(sym_tok, "Expected identifier in selective import");
+                return NULL;
             }
 
             char *sym = xmalloc(sym_tok.len + 1);
@@ -507,6 +510,7 @@ ASTNode *parse_import(ParserContext *ctx, Lexer *l, int is_re_export)
                 if (alias_tok.type != TOK_IDENT)
                 {
                     zpanic_at(alias_tok, "Expected identifier after 'as'");
+                    return NULL;
                 }
 
                 char *als = xmalloc(alias_tok.len + 1);
@@ -528,6 +532,7 @@ ASTNode *parse_import(ParserContext *ctx, Lexer *l, int is_re_export)
         {
             zpanic_at(from_tok, "Expected 'from' after selective import list, got type=%d",
                       from_tok.type);
+            return NULL;
         }
     }
 
@@ -536,6 +541,7 @@ ASTNode *parse_import(ParserContext *ctx, Lexer *l, int is_re_export)
     {
         zpanic_at(t, "Expected string (filename) after 'from' in selective import, got type %d",
                   t.type);
+        return NULL;
     }
     char *fn = token_get_string_content(t);
 
@@ -549,6 +555,7 @@ ASTNode *parse_import(ParserContext *ctx, Lexer *l, int is_re_export)
         else
         {
             zpanic_at(t, "Could not find module: %s", fn);
+            return NULL;
             for (size_t _c = 0; _c < symbols.length; _c++)
             {
                 zfree(symbols.data[_c]);
@@ -592,6 +599,7 @@ ASTNode *parse_import(ParserContext *ctx, Lexer *l, int is_re_export)
     if (zmap_get(&ctx->imports.currently_parsing, fn))
     {
         zpanic_at(t, "Circular import detected: '%s'", fn);
+        return NULL;
         for (size_t _c = 0; _c < symbols.length; _c++)
         {
             zfree(symbols.data[_c]);
@@ -630,6 +638,7 @@ ASTNode *parse_import(ParserContext *ctx, Lexer *l, int is_re_export)
             if (alias_tok.type != TOK_IDENT && alias_tok.type != TOK_OP)
             {
                 zpanic_at(alias_tok, "Expected identifier after 'as'");
+                return NULL;
             }
 
             if (alias_tok.len == 1 && *alias_tok.start == '*')
@@ -707,6 +716,7 @@ ASTNode *parse_import(ParserContext *ctx, Lexer *l, int is_re_export)
                 return dummy;
             }
             zpanic_at(t, "Not found: %s", fn);
+            return NULL;
         }
     }
 

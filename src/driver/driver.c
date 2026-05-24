@@ -318,7 +318,7 @@ int driver_compile(ZenCompiler *compiler)
         if (compiler->config.mode_transpile)
         {
             char *with_ext = xmalloc(strlen(stripped) + strlen(ext_p) + 1);
-            sprintf(with_ext, "%s%s", stripped, ext_p);
+            sprintf(with_ext, "%s%s", stripped, ext_p); /* safe */
             compiler->config.output_file = with_ext;
         }
         else

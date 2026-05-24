@@ -303,7 +303,7 @@ char *replace_type_str(const char *src, const char *param, const char *concrete,
         base[slen - 1] = 0;
         char *nb = replace_type_str(base, param, concrete, old_struct, new_struct);
         char *res = xmalloc(strlen(nb) + 2);
-        sprintf(res, "%s*", nb);
+        sprintf(res, "%s*", nb); /* safe */
         zfree(base);
         zfree(nb);
         return res;
@@ -1608,7 +1608,7 @@ char *unmangle_ptr_suffix(const char *s)
     // Check if base is a primitive type
     if (is_primitive_type_name(base))
     {
-        sprintf(result, "%s*", base);
+        sprintf(result, "%s*", base); /* safe */
     }
     else
     {

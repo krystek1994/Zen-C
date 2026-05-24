@@ -215,6 +215,7 @@ ASTNode *parse_embed(ParserContext *ctx, Lexer *l)
 
     {
         zpanic_at(t, "String required");
+        return NULL;
     }
     char *content = token_get_string_content(t);
     char fn[MAX_PATH_LEN];
@@ -235,6 +236,7 @@ ASTNode *parse_embed(ParserContext *ctx, Lexer *l)
     if (!f)
     {
         zpanic_at(t, "404: %s", fn);
+        return NULL;
         return NULL; // In fault-tolerant mode (LSP), zpanic_at returns instead of exiting.
     }
     fseek(f, 0, SEEK_END);

@@ -100,6 +100,8 @@ ASTNode *parse_def(ParserContext *ctx, Lexer *l, int is_export)
     else
     {
         zpanic_at(n, "'def' constants must be initialized");
+        return NULL;
+        return NULL;
     }
 
     if (lexer_peek(l).type == TOK_SEMICOLON)
@@ -129,6 +131,8 @@ ASTNode *parse_type_alias(ParserContext *ctx, Lexer *l, int is_opaque, int is_ex
     if (n.type != TOK_IDENT)
     {
         zpanic_at(n, "Expected identifier for type alias");
+        return NULL;
+        return NULL;
     }
 
     lexer_next(l); // consume '='

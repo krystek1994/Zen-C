@@ -84,6 +84,8 @@ ASTNode *parse_enum(ParserContext *ctx, Lexer *l, const char *link_name, int is_
                     if (strlen(s) > 250)
                     { // Safety check
                         zpanic_at(lexer_peek(l), "Type name too long for tuple generation");
+                        return NULL;
+                        return NULL;
                     }
                     strcpy(sig, s);
                     zfree(s);
@@ -101,6 +103,8 @@ ASTNode *parse_enum(ParserContext *ctx, Lexer *l, const char *link_name, int is_
                         if (strlen(sig) + strlen(ns) + 2 > 510)
                         {
                             zpanic_at(lexer_peek(l), "Tuple signature too long");
+                            return NULL;
+                            return NULL;
                         }
                         strcat(sig, ns);
                         zfree(ns);
@@ -118,7 +122,7 @@ ASTNode *parse_enum(ParserContext *ctx, Lexer *l, const char *link_name, int is_
                     }
                     char *clean_sig = sanitize_mangled_name(sig);
                     char *tuple_name = xmalloc(strlen(clean_sig) + 8);
-                    sprintf(tuple_name, "Tuple__%s", clean_sig);
+                    sprintf(tuple_name, "Tuple__%s", clean_sig); /* safe */
                     zfree(clean_sig);
 
                     payload = type_new(TYPE_STRUCT);
@@ -132,6 +136,8 @@ ASTNode *parse_enum(ParserContext *ctx, Lexer *l, const char *link_name, int is_
                 if (lexer_next(l).type != TOK_RPAREN)
                 {
                     zpanic_at(lexer_peek(l), "Expected )");
+                    return NULL;
+                    return NULL;
                 }
             }
 

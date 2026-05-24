@@ -25,7 +25,8 @@ ASTNode *generate_derive_impls(ParserContext *ctx, ASTNode *strct, char **traits
         if (0 == strcmp(trait, "Clone"))
         {
             code = xmalloc(1024);
-            sprintf(code, "impl %s { fn clone(self) -> %s { return self; } }", name, name);
+            sprintf(code, "impl %s { fn clone(self) -> %s { return self; } }", name,
+                    name); /* safe */
         }
         else if (0 == strcmp(trait, "Eq"))
         {
@@ -49,12 +50,12 @@ ASTNode *generate_derive_impls(ParserContext *ctx, ASTNode *strct, char **traits
 
                 if (has_payload)
                 {
-                    sprintf(body, "return self.tag == other.tag;");
+                    sprintf(body, "return self.tag == other.tag;"); /* TODO: check buffer size */
                 }
                 else
                 {
                     // Simple enum: direct comparison via raw C (no .tag)
-                    sprintf(body, "raw { return *self == *other; }");
+                    sprintf(body, "raw { return *self == *other; }"); /* TODO: check buffer size */
                 }
             }
             else
@@ -105,23 +106,27 @@ ASTNode *generate_derive_impls(ParserContext *ctx, ASTNode *strct, char **traits
                             }
                             if (ep)
                             {
-                                sprintf(cmp, "self.%s.tag == other.%s.tag", fn, fn);
+                                sprintf(cmp, "self.%s.tag == other.%s.tag", fn,
+                                        fn); /* TODO: check buffer size */
                             }
                             else
                             {
                                 // Simple enum: direct comparison
-                                sprintf(cmp, "self.%s == other.%s", fn, fn);
+                                sprintf(cmp, "self.%s == other.%s", fn,
+                                        fn); /* TODO: check buffer size */
                             }
                         }
                         else if (!is_ptr && fdef && fdef->type == NODE_STRUCT)
                         {
                             // Struct field: use __eq function
-                            sprintf(cmp, "%s__eq(&self.%s, &other.%s)", ft, fn, fn);
+                            sprintf(cmp, "%s__eq(&self.%s, &other.%s)", ft, fn,
+                                    fn); /* TODO: check buffer size */
                         }
                         else
                         {
                             // Primitive, POINTER, or unknown: use ==
-                            sprintf(cmp, "self.%s == other.%s", fn, fn);
+                            sprintf(cmp, "self.%s == other.%s", fn,
+                                    fn); /* TODO: check buffer size */
                         }
                         strcat(body, cmp);
                         first = 0;
@@ -136,20 +141,23 @@ ASTNode *generate_derive_impls(ParserContext *ctx, ASTNode *strct, char **traits
             }
             code = xmalloc(4096 + 1024);
             // Updated signature: other is a pointer T*
-            sprintf(code, "impl %s { fn eq(self, other: %s*) -> bool { %s } }", name, name, body);
+            sprintf(code, "impl %s { fn eq(self, other: %s*) -> bool { %s } }", name, name,
+                    body); /* safe */
         }
         else if (0 == strcmp(trait, "Debug"))
         {
             // Simplistic Debug for now, I know.
             code = xmalloc(1024);
-            sprintf(code, "impl %s { fn to_string(self) -> char* { return \"%s {{ ... }}\"; } }",
-                    name, name);
+            sprintf(
+                code,
+                "impl %s { fn to_string(self) -> char* { return \"%s {{ ... }}\"; } }", /* safe */
+                name, name);
         }
         else if (0 == strcmp(trait, "Copy"))
         {
             // Marker trait for Copy/Move semantics
             code = xmalloc(1024);
-            sprintf(code, "impl Copy for %s {}", name);
+            sprintf(code, "impl Copy for %s {}", name); /* safe */
         }
         else if (0 == strcmp(trait, "FromJson"))
         {
@@ -193,29 +201,37 @@ ASTNode *generate_derive_impls(ParserContext *ctx, ASTNode *strct, char **traits
                                       strcmp(ft, "size_t") == 0;
                     if (is_int_type)
                     {
-                        sprintf(assign, "let _f_%s = (*j).get_int(\"%s\").unwrap_or(0);\n", fn, fn);
+                        snprintf(assign, 2048, "let _f_%s = (*j).get_int(\"%s\").unwrap_or(0);\n",
+                                 fn, fn);
                     }
                     else if (strcmp(ft, "double") == 0)
                     {
-                        sprintf(assign, "let _f_%s = (*j).get_float(\"%s\").unwrap_or(0.0);\n", fn,
+                        sprintf(assign, "let _f_%s = (*j).get_float(\"%s\").unwrap_or(0.0);\n",
+                                fn, /* TODO: check buffer size */
                                 fn);
                     }
                     else if (strcmp(ft, "bool") == 0)
                     {
-                        sprintf(assign, "let _f_%s = (*j).get_bool(\"%s\").unwrap_or(false);\n", fn,
+                        sprintf(assign, "let _f_%s = (*j).get_bool(\"%s\").unwrap_or(false);\n",
+                                fn, /* TODO: check buffer size */
                                 fn);
                     }
                     else if (strcmp(ft, "char*") == 0)
                     {
-                        sprintf(assign, "let _f_%s = (*j).get_string(\"%s\").unwrap_or(\"\");\n",
-                                fn, fn);
+                        sprintf(
+                            assign,
+                            "let _f_%s = (*j).get_string(\"%s\").unwrap_or(\"\");\n", /* TODO: check
+                                                                                         buffer size
+                                                                                       */
+                            fn, fn);
                     }
                     else if (strcmp(ft, "String") == 0)
                     {
-                        sprintf(
-                            assign,
-                            "let _f_%s = String::new((*j).get_string(\"%s\").unwrap_or(\"\"));\n",
-                            fn, fn);
+                        sprintf(/* TODO: check buffer size */
+                                assign,
+                                "let _f_%s = "
+                                "String::new((*j).get_string(\"%s\").unwrap_or(\"\"));\n",
+                                fn, fn);
                     }
                     else if (ft && strstr(ft, "Vec") && strstr(ft, "String"))
                     {
@@ -224,30 +240,31 @@ ASTNode *generate_derive_impls(ParserContext *ctx, ASTNode *strct, char **traits
                         {
                             vec_fields[vec_field_count++] = fn;
                         }
-                        sprintf(
-                            assign,
-                            "let _f_%s = Vec<String>::new();\n"
-                            "let _arr_%s = (*j).get_array(\"%s\");\n"
-                            "if _arr_%s.is_some() {\n"
-                            "  let _a_%s = _arr_%s.unwrap();\n"
-                            "  for let _i_%s: usize = 0; _i_%s < _a_%s.len(); _i_%s = _i_%s + 1 {\n"
-                            "    let _item_%s = _a_%s.at(_i_%s);\n"
-                            "    if _item_%s.is_some() {\n"
-                            "      let _str_%s = (*_item_%s.unwrap()).as_string();\n"
-                            "      if _str_%s.is_some() {\n"
-                            "        let _s_%s = String::new(_str_%s.unwrap());\n"
-                            "        _f_%s.push(_s_%s); _s_%s.forget();\n"
-                            "      }\n"
-                            "    }\n"
-                            "  }\n"
-                            "}\n",
-                            fn, fn, fn, fn, fn, fn, fn, fn, fn, fn, fn, fn, fn, fn, fn, fn, fn, fn,
-                            fn, fn, fn, fn, fn);
+                        sprintf(/* TODO: check buffer size */
+                                assign,
+                                "let _f_%s = Vec<String>::new();\n"
+                                "let _arr_%s = (*j).get_array(\"%s\");\n"
+                                "if _arr_%s.is_some() {\n"
+                                "  let _a_%s = _arr_%s.unwrap();\n"
+                                "  for let _i_%s: usize = 0; _i_%s < _a_%s.len(); _i_%s = _i_%s + "
+                                "1 {\n"
+                                "    let _item_%s = _a_%s.at(_i_%s);\n"
+                                "    if _item_%s.is_some() {\n"
+                                "      let _str_%s = (*_item_%s.unwrap()).as_string();\n"
+                                "      if _str_%s.is_some() {\n"
+                                "        let _s_%s = String::new(_str_%s.unwrap());\n"
+                                "        _f_%s.push(_s_%s); _s_%s.forget();\n"
+                                "      }\n"
+                                "    }\n"
+                                "  }\n"
+                                "}\n",
+                                fn, fn, fn, fn, fn, fn, fn, fn, fn, fn, fn, fn, fn, fn, fn, fn, fn,
+                                fn, fn, fn, fn, fn, fn);
                     }
                     else
                     {
                         // Nested struct: call NestedType::from_json recursively
-                        sprintf(assign,
+                        sprintf(assign, /* TODO: check buffer size */
                                 "let _opt_%s = (*j).get(\"%s\");\n"
                                 "let _f_%s: %s;\n"
                                 "if _opt_%s.is_some() { _f_%s = "
@@ -289,11 +306,11 @@ ASTNode *generate_derive_impls(ParserContext *ctx, ASTNode *strct, char **traits
                     }
                     if (is_vec_field)
                     {
-                        sprintf(init, "%s: _f_%s.clone()", f->field.name, f->field.name);
+                        snprintf(init, 128, "%s: _f_%s.clone()", f->field.name, f->field.name);
                     }
                     else
                     {
-                        sprintf(init, "%s: _f_%s", f->field.name, f->field.name);
+                        snprintf(init, 128, "%s: _f_%s", f->field.name, f->field.name);
                     }
                     strcat(body, init);
                     first = 0;
@@ -303,7 +320,8 @@ ASTNode *generate_derive_impls(ParserContext *ctx, ASTNode *strct, char **traits
             strcat(body, " }); ");
 
             code = xmalloc(8192 + 1024);
-            sprintf(code, "impl %s { fn from_json(j: JsonValue*) -> Result<%s> { %s } }", name,
+            sprintf(code, "impl %s { fn from_json(j: JsonValue*) -> Result<%s> { %s } }",
+                    name, /* safe */
                     name, body);
         }
         else if (0 == strcmp(trait, "ToJson"))
@@ -342,31 +360,39 @@ ASTNode *generate_derive_impls(ParserContext *ctx, ASTNode *strct, char **traits
                                       strcmp(ft, "size_t") == 0;
                     if (is_int_type)
                     {
-                        sprintf(set_call, "_obj.set(\"%s\", JsonValue::number((double)self.%s));\n",
-                                fn, fn);
+                        snprintf(set_call, 2048,
+                                 "_obj.set(\"%s\", JsonValue::number((double)self.%s));\n", fn, fn);
                     }
                     else if (strcmp(ft, "double") == 0)
                     {
-                        sprintf(set_call, "_obj.set(\"%s\", JsonValue::number(self.%s));\n", fn,
+                        sprintf(set_call, "_obj.set(\"%s\", JsonValue::number(self.%s));\n",
+                                fn, /* TODO: check buffer size */
                                 fn);
                     }
                     else if (strcmp(ft, "bool") == 0)
                     {
-                        sprintf(set_call, "_obj.set(\"%s\", JsonValue::bool(self.%s));\n", fn, fn);
+                        sprintf(set_call, "_obj.set(\"%s\", JsonValue::bool(self.%s));\n", fn,
+                                fn); /* TODO: check buffer size */
                     }
                     else if (strcmp(ft, "char*") == 0)
                     {
-                        sprintf(set_call, "_obj.set(\"%s\", JsonValue::string(self.%s));\n", fn,
+                        sprintf(set_call, "_obj.set(\"%s\", JsonValue::string(self.%s));\n",
+                                fn, /* TODO: check buffer size */
                                 fn);
                     }
                     else if (strcmp(ft, "String") == 0)
                     {
-                        sprintf(set_call, "_obj.set(\"%s\", JsonValue::string(self.%s.c_str()));\n",
-                                fn, fn);
+                        sprintf(
+                            set_call,
+                            "_obj.set(\"%s\", JsonValue::string(self.%s.c_str()));\n", /* TODO:
+                                                                                          check
+                                                                                          buffer
+                                                                                          size */
+                            fn, fn);
                     }
                     else if (ft && strstr(ft, "Vec") && strstr(ft, "String"))
                     {
-                        sprintf(set_call,
+                        sprintf(set_call, /* TODO: check buffer size */
                                 "let _arr_%s = JsonValue::array();\n"
                                 "for let _i_%s: usize = 0; _i_%s < self.%s.length(); _i_%s = _i_%s "
                                 "+ 1 {\n"
@@ -378,7 +404,8 @@ ASTNode *generate_derive_impls(ParserContext *ctx, ASTNode *strct, char **traits
                     else
                     {
                         // Nested struct: call to_json recursively
-                        sprintf(set_call, "_obj.set(\"%s\", self.%s.to_json());\n", fn, fn);
+                        sprintf(set_call, "_obj.set(\"%s\", self.%s.to_json());\n", fn,
+                                fn); /* TODO: check buffer size */
                     }
                     strcat(body, set_call);
                 }
@@ -388,7 +415,8 @@ ASTNode *generate_derive_impls(ParserContext *ctx, ASTNode *strct, char **traits
             strcat(body, "return _obj;");
 
             code = xmalloc(8192 + 1024);
-            sprintf(code, "impl %s { fn to_json(self) -> JsonValue { %s } }", name, body);
+            sprintf(code, "impl %s { fn to_json(self) -> JsonValue { %s } }", name,
+                    body); /* safe */
         }
 
         if (code)

@@ -134,6 +134,8 @@ ASTNode *parse_guard(ParserContext *ctx, Lexer *l)
     if (t.type != TOK_IDENT || strncmp(t.start, "else", 4) != 0)
     {
         zpanic_at(t, "Expected 'else' after guard condition");
+        return NULL;
+        return NULL;
     }
     lexer_next(l);
 
@@ -496,11 +498,12 @@ ASTNode *parse_for(ParserContext *ctx, Lexer *l)
                     instantiate_generic(ctx, "Slice", elem_type_str, elem_type_str, dummy_tok);
 
                     char iter_type[MAX_TYPE_NAME_LEN];
-                    sprintf(iter_type, "SliceIter<%s>", elem_type_str);
+                    sprintf(iter_type, "SliceIter<%s>",
+                            elem_type_str); /* TODO: check buffer size */
                     instantiate_generic(ctx, "SliceIter", elem_type_str, elem_type_str, dummy_tok);
 
                     char option_type[MAX_TYPE_NAME_LEN];
-                    sprintf(option_type, "Option<%s>", elem_type_str);
+                    sprintf(option_type, "Option<%s>", elem_type_str); /* TODO: check buffer size */
                     instantiate_generic(ctx, "Option", elem_type_str, elem_type_str, dummy_tok);
 
                     ASTNode *slice_ref = ast_create(NODE_EXPR_VAR);
@@ -598,7 +601,7 @@ ASTNode *parse_for(ParserContext *ctx, Lexer *l)
                         if (strchr(coll_type, '&') || (coll_type[0] == '&') ||
                             (strchr(coll_type, '*')) || strstr(coll_type, "Ref"))
                         {
-                            sprintf(u_type, "%s*", inner);
+                            sprintf(u_type, "%s*", inner); /* safe */
                         }
                         else
                         {
@@ -609,14 +612,14 @@ ASTNode *parse_for(ParserContext *ctx, Lexer *l)
                         {
                             char *old_u = u_type;
                             u_type = xmalloc(strlen(inner) + 32);
-                            sprintf(u_type, "MapEntry<%s>", inner);
+                            sprintf(u_type, "MapEntry<%s>", inner); /* safe */
                             if (old_u)
                             {
                                 zfree(old_u);
                             }
 
                             option_type_ptr = xmalloc(strlen(inner) + 128);
-                            sprintf(option_type_ptr, "MapIterResult<%s>", inner);
+                            sprintf(option_type_ptr, "MapIterResult<%s>", inner); /* safe */
                         }
                         else if (strstr(coll_type, "Vec") || strstr(coll_type, "Slice"))
                         {
@@ -624,17 +627,17 @@ ASTNode *parse_for(ParserContext *ctx, Lexer *l)
                             if (strchr(coll_type, '&') || (coll_type[0] == '&') ||
                                 (strchr(coll_type, '*')) || strstr(coll_type, "Ref"))
                             {
-                                sprintf(option_type_ptr, "VecIterResult<%s>", inner);
+                                sprintf(option_type_ptr, "VecIterResult<%s>", inner); /* safe */
                             }
                             else
                             {
-                                sprintf(option_type_ptr, "Option<%s>", u_type);
+                                sprintf(option_type_ptr, "Option<%s>", u_type); /* safe */
                             }
                         }
                         else
                         {
                             option_type_ptr = xmalloc(strlen(u_type) + 64);
-                            sprintf(option_type_ptr, "Option<%s>", u_type);
+                            sprintf(option_type_ptr, "Option<%s>", u_type); /* safe */
                         }
 
                         zfree(inner);

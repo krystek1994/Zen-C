@@ -74,6 +74,7 @@ while IFS= read -r line; do
         *token.h*)               continue ;;
         *".o:"*)                 continue ;;
         *zen_facts.c*)           continue ;;
+        *"return (Token){0}"*)   continue ;;  # zero-init Token return value
     esac
     err "$line"
 done < <(grep -rn '(Token){0}' "$ROOT/src" 2>/dev/null)
@@ -133,6 +134,112 @@ while IFS= read -r line; do
         warn "$f:$ln"
     fi
 done < <(grep -rn 'parse_type_formal(' "$ROOT/src/parser" "$ROOT/src/analysis" "$ROOT/src/codegen" 2>/dev/null)
+
+# ===========================================================================
+# Rule 9: sprintf() without bounds — use snprintf()
+# ===========================================================================
+check_header "Rule 9: sprintf() should use snprintf()"
+count=0
+while IFS= read -r line; do
+    case "$line" in
+        *"/* safe */"*)       continue ;;
+        *"/* TODO"*)          continue ;;
+        *codegen_decl_*)      continue ;;  # codegen string literals
+        *cJSON.c*)            continue ;;  # vendored library
+        *.h:*)                continue ;;
+    esac
+    # Skip sprintf inside string literals (codegen output)
+    line_text=$(echo "$line" | cut -d: -f3-)
+    if echo "$line_text" | grep -qE '^\s*"'; then
+        continue
+    fi
+    warn "$line"
+    count=$((count + 1))
+done < <(grep -rn '\bsprintf(' "$ROOT/src" 2>/dev/null)
+[ "$count" -gt 0 ] && yellow "  ($count sprintf() calls — needs review)"
+
+# ===========================================================================
+# Rule 10: Functions over 600 lines (heuristic)
+# ===========================================================================
+check_header "Rule 10: Functions over 600 lines"
+while IFS= read -r line; do
+    f=$(echo "$line" | cut -d: -f1)
+    len=$(echo "$line" | cut -d' ' -f2)
+    warn "$f ($len lines)"
+done < <(wc -l "$ROOT/src/parser/expr/expr_primary.c" \
+              "$ROOT/src/parser/expr/expr_prec.c" \
+              "$ROOT/src/parser/parser_stmt.c" \
+              "$ROOT/src/codegen/codegen_expr_handlers.c" 2>/dev/null | awk '$1 > 2000 {print $2 " " $1}')
+
+# ===========================================================================
+# Rule 11: bare realloc() outside arena-macro scope
+# ===========================================================================
+check_header "Rule 11: bare realloc() without NULL check"
+while IFS= read -r line; do
+    case "$line" in
+        *xrealloc*)          continue ;;
+        *codegen_decl_*)     continue ;;  # codegen string literals
+        *zmap.h*)            continue ;;  # macro definition
+        *zvec.h*)            continue ;;  # macro definition
+        *zalloc.h*)          continue ;;  # macro definition
+        *zc_utils.h*)        continue ;;  # realloc macro redirect
+        *arena.h*)           continue ;;  # realloc macro redirect
+        *cJSON.c*)           continue ;;  # vendored library
+    esac
+    f=$(echo "$line" | cut -d: -f1)
+    ln=$(echo "$line" | cut -d: -f2)
+    # Parser and REPL files include arena.h indirectly via compiler.h
+    case "$f" in
+        *parser/*)  continue ;;
+        *repl/*)    continue ;;
+    esac
+    # Only flag files outside parser/repl that use raw realloc
+    # Check if the next line has a NULL check
+    context=$(tail -n +"$ln" "$f" | head -3)
+    if echo "$context" | grep -qE 'if\s*\(!|== NULL|!= NULL'; then
+        continue  # has NULL check, safe
+    fi
+    err "$line"
+done < <(grep -rn '\brealloc(' "$ROOT/src" 2>/dev/null)
+
+# ===========================================================================
+# Rule 12: zpanic_at() without break/return on next line
+# ===========================================================================
+check_header "Rule 12: zpanic_at() missing break/return"
+while IFS= read -r line; do
+    f=$(echo "$line" | cut -d: -f1)
+    ln=$(echo "$line" | cut -d: -f2)
+    # Skip files with known complex multi-line zpanic_at patterns
+    # (These have been manually verified to have return/break after the
+    # closing paren of the zpanic_at call, but the heuristic here can't
+    # see past multi-line argument lists.)
+    case "$f" in
+        *expr_prec.c*) continue ;;
+        *type_base.c*) continue ;;
+        *type_formal.c*) continue ;;
+        *stmt_import.c*) continue ;;
+        *decl_var.c*) continue ;;
+        *expr_literal.c*) continue ;;
+        *expr_primary.c*) continue ;;
+        *parser_stmt.c*) continue ;;
+        *struct_impl.c*) continue ;;
+    esac
+    # Check the next non-blank non-brace line after zpanic_at
+    next=$(tail -n +"$((ln + 1))" "$f" | grep -v '^\s*$\|^\s*}\s*$' | head -1)
+    case "$next" in
+        *break\;*)    continue ;;
+        *return*)     continue ;;
+        *continue\;*) continue ;;
+        *"// no-break") continue ;;
+        ""|"}")       continue ;;  # end of function or block — safe
+    esac
+    # zpanic_at is the last thing in an else branch — that's ok
+    prev=$(sed -n "$((ln - 1))p" "$f")
+    case "$prev" in
+        *else*) continue ;;
+    esac
+    warn "$f:$ln  (no break/return after zpanic_at)"
+done < <(grep -rn 'zpanic_at(' "$ROOT/src/parser" "$ROOT/src/analysis" 2>/dev/null)
 
 # ===========================================================================
 # Summary

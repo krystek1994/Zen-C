@@ -36,6 +36,7 @@ Type *parse_type_formal(ParserContext *ctx, Lexer *l)
     {
         zpanic_at(lexer_peek(l), "Zen C uses postfix pointers (e.g. 'Type*'). Prefix pointer "
                                  "syntax ('*Type') is not supported.");
+        return NULL;
     }
 
     Type *t = NULL;
@@ -195,6 +196,7 @@ Type *parse_type_formal(ParserContext *ctx, Lexer *l)
         if (!size_expr)
         {
             zpanic_at(lexer_peek(l), "Expected array size expression");
+            return NULL;
         }
         if (eval_const_int_expr(size_expr, ctx, &compiled_size))
         {
@@ -207,17 +209,20 @@ Type *parse_type_formal(ParserContext *ctx, Lexer *l)
             if (ctx->config->misra_mode)
             {
                 zpanic_at(lexer_peek(l), "MISRA Rule 18.8");
+                return NULL;
             }
             else
             {
                 zpanic_at(lexer_peek(l),
                           "Array size must be a known compile-time constant integer");
+                return NULL;
             }
         }
 
         if (lexer_next(l).type != TOK_RBRACKET)
         {
             zpanic_at(lexer_peek(l), "Expected ']' in array type");
+            return NULL;
         }
 
         dims[dims_count++] = size;

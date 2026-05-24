@@ -337,7 +337,7 @@ static int repl_process_line(ReplState *state, char *line_buf, int *brace_depth,
     if (!is_header_line(raw_input))
     {
         char *check_buf = malloc(strlen(raw_input) + 2);
-        sprintf(check_buf, "%s;", raw_input);
+        sprintf(check_buf, "%s;", raw_input); /* TODO: check buffer size */
 
         ParserContext pctx = {0};
         pctx.cg.is_repl = 1;

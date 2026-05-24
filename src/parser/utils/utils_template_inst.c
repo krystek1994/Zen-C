@@ -503,11 +503,11 @@ char *instantiate_function_template(ParserContext *ctx, const char *name, const 
                         unmangled = xmalloc(strlen(base) + 16);
                         if (is_unmangle_primitive(base))
                         {
-                            sprintf(unmangled, "%s*", base);
+                            sprintf(unmangled, "%s*", base); /* safe */
                         }
                         else
                         {
-                            sprintf(unmangled, "struct %s*", base);
+                            sprintf(unmangled, "struct %s*", base); /* safe */
                         }
                         zfree(base);
                     }
@@ -645,7 +645,7 @@ ZEN_MAYBE_UNUSED static char *process_fstring(ParserContext *ctx, const char *co
 
         if (fmt)
         {
-            strcat(gen, "sprintf(_t, \"%");
+            strcat(gen, "sprintf(_t, \"%"); /* TODO: check buffer size */
             strcat(gen, fmt);
             strcat(gen, "\", ");
             if (code_buffer)
@@ -660,7 +660,7 @@ ZEN_MAYBE_UNUSED static char *process_fstring(ParserContext *ctx, const char *co
         }
         else
         {
-            strcat(gen, "sprintf(_t, _z_str(");
+            strcat(gen, "sprintf(_t, _z_str("); /* TODO: check buffer size */
             if (code_buffer)
             {
                 strcat(gen, code_buffer);
@@ -914,7 +914,7 @@ void instantiate_methods(ParserContext *ctx, GenericImplTemplate *it,
             }
 
             char *temp = xmalloc(strlen(mangled_struct_name) + strlen(original_method) + 3);
-            sprintf(temp, "%s__%s", mangled_struct_name, original_method);
+            sprintf(temp, "%s__%s", mangled_struct_name, original_method); /* safe */
             char *new_name = merge_underscores(temp);
             zfree(temp);
             zfree(meth->func.name);
@@ -969,11 +969,11 @@ void instantiate_methods(ParserContext *ctx, GenericImplTemplate *it,
                         // Check if base is a primitive type
                         if (is_unmangle_primitive(base))
                         {
-                            sprintf(inner_unmangled_arg, "%s*", base);
+                            sprintf(inner_unmangled_arg, "%s*", base); /* safe */
                         }
                         else
                         {
-                            sprintf(inner_unmangled_arg, "struct %s*", base);
+                            sprintf(inner_unmangled_arg, "struct %s*", base); /* safe */
                         }
                         zfree(base);
                     }

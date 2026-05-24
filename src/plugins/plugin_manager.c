@@ -40,6 +40,7 @@ static void plugin_error(const ZApi *api, const char *fmt, ...)
     t.file = api->filename;
     t.line = api->current_line;
     t.col = 1;
+    t.col = 1;
     zerror_at(t, "%s", msg);
 }
 
@@ -54,6 +55,7 @@ static void plugin_warn(const ZApi *api, const char *fmt, ...)
     Token t = {0};
     t.file = api->filename;
     t.line = api->current_line;
+    t.col = 1;
     t.col = 1;
     zwarn_at(t, "%s", msg);
 }

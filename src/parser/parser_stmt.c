@@ -78,6 +78,10 @@ ASTNode *parse_statement(ParserContext *ctx, Lexer *l)
             int used_count = 0;
             char *code = process_printf_sugar(ctx, next, inner, is_ln, "stdout", &used_syms,
                                               &used_count, 1, (t.type == TOK_RAW_STRING), 0);
+            if (!code)
+            {
+                return NULL;
+            }
 
             if (next_type == TOK_SEMICOLON)
             {
@@ -97,7 +101,7 @@ ASTNode *parse_statement(ParserContext *ctx, Lexer *l)
             n->token = tk;
             // Append semicolon to Statement Expression to make it a valid statement
             char *stmt_code = xmalloc(strlen(code) + 2);
-            sprintf(stmt_code, "%s;", code);
+            sprintf(stmt_code, "%s;", code); /* safe */
             zfree(code);
             n->raw_stmt.content = stmt_code;
             n->raw_stmt.used_symbols = used_syms;
@@ -702,6 +706,10 @@ ASTNode *parse_statement(ParserContext *ctx, Lexer *l)
             char *code = process_printf_sugar(ctx, t, inner, is_ln, target, &used_syms, &used_count,
                                               1, (t.type == TOK_RAW_STRING), 0);
             zfree(inner);
+            if (!code)
+            {
+                return NULL;
+            }
 
             if (lexer_peek(l).type == TOK_SEMICOLON)
             {
@@ -712,7 +720,7 @@ ASTNode *parse_statement(ParserContext *ctx, Lexer *l)
             n->token = t;
             // Append semicolon to Statement Expression to make it a valid statement
             char *stmt_code = xmalloc(strlen(code) + 2);
-            sprintf(stmt_code, "%s;", code);
+            sprintf(stmt_code, "%s;", code); /* safe */
             zfree(code);
             n->raw_stmt.content = stmt_code;
             n->raw_stmt.used_symbols = used_syms;

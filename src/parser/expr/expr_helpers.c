@@ -411,6 +411,7 @@ void validate_named_arguments(Token call_token, const char *func_name, char **ar
                 "Named arguments must follow function parameter order. Expected '%s' but got '%s'",
                 expected_name, arg_names[i]);
             zpanic_at(call_token, "%s", msg);
+            return;
         }
     }
 }

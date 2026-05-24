@@ -58,6 +58,8 @@ ASTNode *parse_struct(ParserContext *ctx, Lexer *l, int is_union, int is_opaque,
             else
             {
                 zpanic_at(next, "Expected ',' or '>' in generic parameter list");
+                return NULL;
+                return NULL;
             }
         }
 
@@ -257,6 +259,8 @@ ASTNode *parse_struct(ParserContext *ctx, Lexer *l, int is_union, int is_opaque,
                 if (width_tok.type != TOK_INT)
                 {
                     zpanic_at(width_tok, "Expected bit width integer");
+                    return NULL;
+                    return NULL;
                 }
                 f->field.bit_width = atoi(token_strdup(width_tok));
             }

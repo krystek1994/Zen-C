@@ -226,6 +226,8 @@ ASTNode *parse_tuple_expression(ParserContext *ctx, Lexer *l, const char *type_n
     if (lexer_next(l).type != TOK_RPAREN)
     {
         zpanic_at(lexer_peek(l), "Expected ) after tuple literal");
+        return NULL;
+        return NULL;
     }
 
     ASTNode *n = ast_create(NODE_EXPR_TUPLE_LITERAL);

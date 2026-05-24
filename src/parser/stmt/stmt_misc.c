@@ -211,6 +211,8 @@ char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *conte
         if (*p == 0)
         {
             zpanic_at(srctoken, "Unclosed interpolation brace in printf-sugar");
+            return NULL;
+            return NULL;
         }
         *p = 0;
         char *expr = brace + 1;
@@ -305,6 +307,8 @@ char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *conte
         else
         {
             zpanic_at(srctoken, "Could not parse expression in interpolation");
+            return NULL;
+            return NULL;
         }
 
         char *rw_expr = NULL;
@@ -576,11 +580,14 @@ char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *conte
                             {
                                 if (is_expr)
                                 {
-                                    append_to_gen_fmt(
-                                        &gen, &gen_cap,
-                                        "sprintf(_fs_t_%d, \"%%.*s\", (int)(%s)%slen, (%s)%sdata); "
-                                        "strcat(_fs_buf_%d, _fs_t_%d); ",
-                                        fs_id, rw_expr, acc, rw_expr, acc, fs_id, fs_id);
+                                    append_to_gen_fmt(&gen, &gen_cap,
+                                                      "sprintf(_fs_t_%d, \"%%.*s\", "
+                                                      "(int)(%s)%slen, (%s)%sdata); " /* TODO: check
+                                                                                         buffer size
+                                                                                       */
+                                                      "strcat(_fs_buf_%d, _fs_t_%d); ",
+                                                      fs_id, rw_expr, acc, rw_expr, acc, fs_id,
+                                                      fs_id);
                                 }
                                 else
                                 {
@@ -594,13 +601,15 @@ char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *conte
                             {
                                 if (is_expr)
                                 {
-                                    append_to_gen_fmt(
-                                        &gen, &gen_cap,
-                                        "({ ZC_AUTO_INIT(_z_interp_val, %s); sprintf(_fs_t_%d, "
-                                        "\"%%.*s\", (int)(_z_interp_val)%slen, "
-                                        "(_z_interp_val)%sdata); strcat(_fs_buf_%d, _fs_t_%d); "
-                                        "_z_drop(_z_interp_val); }); ",
-                                        rw_expr, fs_id, acc, acc, fs_id, fs_id);
+                                    append_to_gen_fmt(&gen, &gen_cap,
+                                                      "({ ZC_AUTO_INIT(_z_interp_val, %s); "
+                                                      "sprintf(_fs_t_%d, " /* TODO: check buffer
+                                                                              size */
+                                                      "\"%%.*s\", (int)(_z_interp_val)%slen, "
+                                                      "(_z_interp_val)%sdata); strcat(_fs_buf_%d, "
+                                                      "_fs_t_%d); "
+                                                      "_z_drop(_z_interp_val); }); ",
+                                                      rw_expr, fs_id, acc, acc, fs_id, fs_id);
                                 }
                                 else
                                 {
@@ -623,7 +632,7 @@ char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *conte
                 format_spec = "%s";
                 char *orig = rw_expr;
                 rw_expr = xmalloc(strlen(orig) + 32);
-                sprintf(rw_expr, "_z_str_rune(%s)", orig);
+                sprintf(rw_expr, "_z_str_rune(%s)", orig); /* safe */
             }
             else if (inferred_type)
             {
@@ -651,10 +660,12 @@ char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *conte
                     {
                         if (is_expr)
                         {
-                            append_to_gen_fmt(&gen, &gen_cap,
-                                              "sprintf(_fs_t_%d, \"%%%s\", _z_bool_str(%s)); "
-                                              "strcat(_fs_buf_%d, _fs_t_%d); ",
-                                              fs_id, format_spec + 1, rw_expr, fs_id, fs_id);
+                            append_to_gen_fmt(
+                                &gen, &gen_cap,
+                                "sprintf(_fs_t_%d, \"%%%s\", _z_bool_str(%s)); " /* TODO: check
+                                                                                    buffer size */
+                                "strcat(_fs_buf_%d, _fs_t_%d); ",
+                                fs_id, format_spec + 1, rw_expr, fs_id, fs_id);
                         }
                         else
                         {
@@ -667,12 +678,14 @@ char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *conte
                     {
                         if (is_expr)
                         {
-                            append_to_gen_fmt(
-                                &gen, &gen_cap,
-                                "({ ZC_AUTO_INIT(_z_interp_val, %s); sprintf(_fs_t_%d, \"%%%s\", "
-                                "_z_bool_str(_z_interp_val)); strcat(_fs_buf_%d, _fs_t_%d); "
-                                "_z_drop(_z_interp_val); }); ",
-                                rw_expr, fs_id, format_spec + 1, fs_id, fs_id);
+                            append_to_gen_fmt(&gen, &gen_cap,
+                                              "({ ZC_AUTO_INIT(_z_interp_val, %s); "
+                                              "sprintf(_fs_t_%d, \"%%%s\", " /* TODO: check buffer
+                                                                                size */
+                                              "_z_bool_str(_z_interp_val)); strcat(_fs_buf_%d, "
+                                              "_fs_t_%d); "
+                                              "_z_drop(_z_interp_val); }); ",
+                                              rw_expr, fs_id, format_spec + 1, fs_id, fs_id);
                         }
                         else
                         {
@@ -690,10 +703,10 @@ char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *conte
                     {
                         if (is_expr)
                         {
-                            append_to_gen_fmt(
-                                &gen, &gen_cap,
-                                "sprintf(_fs_t_%d, \"%%%s\", %s); strcat(_fs_buf_%d, _fs_t_%d); ",
-                                fs_id, format_spec + 1, rw_expr, fs_id, fs_id);
+                            append_to_gen_fmt(&gen, &gen_cap,
+                                              "sprintf(_fs_t_%d, \"%%%s\", %s); strcat(_fs_buf_%d, "
+                                              "_fs_t_%d); ", /* TODO: check buffer size */
+                                              fs_id, format_spec + 1, rw_expr, fs_id, fs_id);
                         }
                         else
                         {
@@ -705,12 +718,13 @@ char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *conte
                     {
                         if (is_expr)
                         {
-                            append_to_gen_fmt(
-                                &gen, &gen_cap,
-                                "({ ZC_AUTO_INIT(_z_interp_val, %s); sprintf(_fs_t_%d, \"%%%s\", "
-                                "_z_interp_val); strcat(_fs_buf_%d, _fs_t_%d); "
-                                "_z_drop(_z_interp_val); }); ",
-                                rw_expr, fs_id, format_spec + 1, fs_id, fs_id);
+                            append_to_gen_fmt(&gen, &gen_cap,
+                                              "({ ZC_AUTO_INIT(_z_interp_val, %s); "
+                                              "sprintf(_fs_t_%d, \"%%%s\", " /* TODO: check buffer
+                                                                                size */
+                                              "_z_interp_val); strcat(_fs_buf_%d, _fs_t_%d); "
+                                              "_z_drop(_z_interp_val); }); ",
+                                              rw_expr, fs_id, format_spec + 1, fs_id, fs_id);
                         }
                         else
                         {
@@ -731,11 +745,13 @@ char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *conte
                     {
                         if (is_expr)
                         {
-                            append_to_gen_fmt(&gen, &gen_cap,
-                                              "sprintf(_fs_t_%d, \"%%s\", (char*)%s(%s%s)); "
-                                              "strcat(_fs_buf_%d, _fs_t_%d); ",
-                                              fs_id, mangled_to_string, to_string_is_ptr ? "" : "&",
-                                              rw_expr, fs_id, fs_id);
+                            append_to_gen_fmt(
+                                &gen, &gen_cap,
+                                "sprintf(_fs_t_%d, \"%%s\", (char*)%s(%s%s)); " /* TODO: check
+                                                                                   buffer size */
+                                "strcat(_fs_buf_%d, _fs_t_%d); ",
+                                fs_id, mangled_to_string, to_string_is_ptr ? "" : "&", rw_expr,
+                                fs_id, fs_id);
                         }
                         else
                         {
@@ -748,13 +764,15 @@ char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *conte
                     {
                         if (is_expr)
                         {
-                            append_to_gen_fmt(
-                                &gen, &gen_cap,
-                                "({ ZC_AUTO_INIT(_z_interp_val, %s); sprintf(_fs_t_%d, \"%%s\", "
-                                "(char*)%s(%s_z_interp_val)); strcat(_fs_buf_%d, _fs_t_%d); "
-                                "_z_drop(_z_interp_val); }); ",
-                                rw_expr, fs_id, mangled_to_string, to_string_is_ptr ? "" : "&",
-                                fs_id, fs_id);
+                            append_to_gen_fmt(&gen, &gen_cap,
+                                              "({ ZC_AUTO_INIT(_z_interp_val, %s); "
+                                              "sprintf(_fs_t_%d, \"%%s\", " /* TODO: check buffer
+                                                                               size */
+                                              "(char*)%s(%s_z_interp_val)); strcat(_fs_buf_%d, "
+                                              "_fs_t_%d); "
+                                              "_z_drop(_z_interp_val); }); ",
+                                              rw_expr, fs_id, mangled_to_string,
+                                              to_string_is_ptr ? "" : "&", fs_id, fs_id);
                         }
                         else
                         {
@@ -772,10 +790,12 @@ char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *conte
                     {
                         if (is_expr)
                         {
-                            append_to_gen_fmt(&gen, &gen_cap,
-                                              "sprintf(_fs_t_%d, _z_str(%s), _z_arg(%s)); "
-                                              "strcat(_fs_buf_%d, _fs_t_%d); ",
-                                              fs_id, rw_expr, rw_expr, fs_id, fs_id);
+                            append_to_gen_fmt(
+                                &gen, &gen_cap,
+                                "sprintf(_fs_t_%d, _z_str(%s), _z_arg(%s)); " /* TODO: check buffer
+                                                                                 size */
+                                "strcat(_fs_buf_%d, _fs_t_%d); ",
+                                fs_id, rw_expr, rw_expr, fs_id, fs_id);
                         }
                         else
                         {
@@ -790,7 +810,10 @@ char *process_printf_sugar(ParserContext *ctx, Token srctoken, const char *conte
                         {
                             append_to_gen_fmt(
                                 &gen, &gen_cap,
-                                "({ ZC_AUTO_INIT(_z_interp_val, %s); sprintf(_fs_t_%d, "
+                                "({ ZC_AUTO_INIT(_z_interp_val, %s); sprintf(_fs_t_%d, " /* TODO:
+                                                                                            check
+                                                                                            buffer
+                                                                                            size */
                                 "_z_str(_z_interp_val), _z_arg(_z_interp_val)); strcat(_fs_buf_%d, "
                                 "_fs_t_%d); _z_drop(_z_interp_val); }); ",
                                 rw_expr, fs_id, fs_id, fs_id);
@@ -868,6 +891,8 @@ ASTNode *parse_macro_call(ParserContext *ctx, Lexer *l, char *macro_name)
     if (lexer_peek(l).type != TOK_LBRACE)
     {
         zpanic_at(lexer_peek(l), "Expected { after macro invocation");
+        return NULL;
+        return NULL;
     }
     lexer_next(l);
     int start_line = l->line;
@@ -881,6 +906,8 @@ ASTNode *parse_macro_call(ParserContext *ctx, Lexer *l, char *macro_name)
         if (t.type == TOK_EOF)
         {
             zpanic_at(t, "Unexpected EOF in macro block");
+            return NULL;
+            return NULL;
         }
 
         if (t.type == TOK_LBRACE)
@@ -913,6 +940,8 @@ ASTNode *parse_macro_call(ParserContext *ctx, Lexer *l, char *macro_name)
         snprintf(err, sizeof(err), "Unknown plugin: %s (did you forget 'import plugin \"%s\"'?)",
                  macro_name, macro_name);
         zpanic_at(start_tok, "%s", err);
+        return NULL;
+        return NULL;
 
         if (ctx->config->mode_lsp)
         {
@@ -935,6 +964,8 @@ ASTNode *parse_macro_call(ParserContext *ctx, Lexer *l, char *macro_name)
         char err[MAX_SHORT_MSG_LEN];
         snprintf(err, sizeof(err), "Plugin implementation not found: %s", plugin_name);
         zpanic_at(start_tok, "%s", err);
+        return NULL;
+        return NULL;
 
         return NULL;
     }
@@ -943,6 +974,8 @@ ASTNode *parse_macro_call(ParserContext *ctx, Lexer *l, char *macro_name)
     if (!capture)
     {
         zpanic_at(start_tok, "Failed to create capture buffer for plugin expansion");
+        return NULL;
+        return NULL;
         return NULL;
     }
 
@@ -999,6 +1032,8 @@ ASTNode *parse_comptime_body(ParserContext *ctx, Lexer *l)
         if (t.type == TOK_EOF)
         {
             zpanic_at(t, "Unexpected EOF in comptime block");
+            return NULL;
+            return NULL;
         }
         if (t.type == TOK_STRING || t.type == TOK_FSTRING || t.type == TOK_RAW_STRING)
         {
@@ -1020,7 +1055,7 @@ ASTNode *parse_comptime_body(ParserContext *ctx, Lexer *l)
 
     size_t wrapped_len = (size_t)len + 4;
     char *wrapped = xmalloc(wrapped_len + 1);
-    sprintf(wrapped, "{ %s }", code);
+    sprintf(wrapped, "{ %s }", code); /* safe */
     zfree(code);
 
     Lexer cl;
@@ -1046,6 +1081,8 @@ ASTNode *parse_plugin(ParserContext *ctx, Lexer *l, Token tok)
     if (tk.type != TOK_IDENT)
     {
         zpanic_at(tk, "Expected plugin name after 'plugin' keyword");
+        return NULL;
+        return NULL;
     }
 
     char *plugin_name = xmalloc(tk.len + 1);

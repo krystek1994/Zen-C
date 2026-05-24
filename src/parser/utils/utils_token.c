@@ -26,6 +26,7 @@ Token z_parse_expect(Lexer *l, ZenTokenType type, const char *msg)
     if (t.type != type)
     {
         zpanic_at(t, "Expected %s, but got '%.*s'", msg, t.len, t.start);
+        return (Token){0};
         return (Token){type, t.start, 0, t.line, t.col, t.file};
     }
     return t;
@@ -295,7 +296,8 @@ void skip_comments(Lexer *l)
             {
                 size_t old_len = strlen(token_parser_ctx->last_doc_comment);
                 char *new_c = xmalloc(old_len + tk.len + 2);
-                sprintf(new_c, "%s\n%.*s", token_parser_ctx->last_doc_comment, tk.len, tk.start);
+                sprintf(new_c, "%s\n%.*s", token_parser_ctx->last_doc_comment, tk.len,
+                        tk.start); /* safe */
                 zfree(token_parser_ctx->last_doc_comment);
                 token_parser_ctx->last_doc_comment = new_c;
             }

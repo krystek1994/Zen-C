@@ -26,6 +26,8 @@ char *parse_condition_raw(ParserContext *ctx, Lexer *l)
             if (t.type == TOK_EOF)
             {
                 zpanic_at(t, "Unterminated condition");
+                return NULL;
+                return NULL;
             }
             if (t.type == TOK_LPAREN)
             {
@@ -59,6 +61,8 @@ char *parse_condition_raw(ParserContext *ctx, Lexer *l)
         if (len == 0)
         {
             zpanic_at(lexer_peek(l), "Empty condition or missing body");
+            return NULL;
+            return NULL;
         }
         char *c = xmalloc(len + 1);
         strncpy(c, start, len);
@@ -79,7 +83,7 @@ static MixinResolution resolve_mixin_method(ParserContext *ctx, const char *stru
     MixinResolution res = {xstrdup(struct_name), NULL};
 
     char target_func_raw[MAX_FUNC_NAME_LEN];
-    sprintf(target_func_raw, "%s__%s", struct_name, method_name);
+    sprintf(target_func_raw, "%s__%s", struct_name, method_name); /* TODO: check buffer size */
     char *target_func = merge_underscores(target_func_raw);
 
     if (!find_func(ctx, target_func))
@@ -90,7 +94,8 @@ static MixinResolution resolve_mixin_method(ParserContext *ctx, const char *stru
             for (int k = 0; k < mixin_def->strct.used_struct_count; k++)
             {
                 char mixin_func_raw[128];
-                sprintf(mixin_func_raw, "%s__%s", mixin_def->strct.used_structs[k], method_name);
+                snprintf(mixin_func_raw, 128, "%s__%s", mixin_def->strct.used_structs[k],
+                         method_name);
                 char *mixin_func = merge_underscores(mixin_func_raw);
                 if (find_func(ctx, mixin_func))
                 {
@@ -99,11 +104,11 @@ static MixinResolution resolve_mixin_method(ParserContext *ctx, const char *stru
                     char cast_buf[128];
                     if (is_ptr)
                     {
-                        sprintf(cast_buf, "(%s*)", res.final_struct);
+                        snprintf(cast_buf, 128, "(%s*)", res.final_struct);
                     }
                     else
                     {
-                        sprintf(cast_buf, "(%s*)&", res.final_struct);
+                        snprintf(cast_buf, 128, "(%s*)&", res.final_struct);
                     }
                     res.final_cast = xstrdup(cast_buf);
                     zfree(mixin_func);
@@ -236,11 +241,11 @@ char *rewrite_expr_methods(ParserContext *ctx, char *raw)
                 dest -= strlen(acc);
                 if (is_ptr_type)
                 {
-                    dest += sprintf(dest, "(%s)->%s", acc, method);
+                    dest += sprintf(dest, "(%s)->%s", acc, method); /* TODO: check buffer size */
                 }
                 else
                 {
-                    dest += sprintf(dest, "(%s).%s", acc, method);
+                    dest += sprintf(dest, "(%s).%s", acc, method); /* TODO: check buffer size */
                 }
                 continue;
             }
@@ -267,7 +272,8 @@ char *rewrite_expr_methods(ParserContext *ctx, char *raw)
                     snprintf(call_buf, sizeof(call_buf), "%s__%s", final_struct, final_method);
                     char *mangled_call = merge_underscores(call_buf);
 
-                    dest += sprintf(dest, "%s(%s%s", mangled_call, final_cast, acc);
+                    dest += sprintf(dest, "%s(%s%s", mangled_call, final_cast,
+                                    acc); /* TODO: check buffer size */
                     zfree(final_cast);
                 }
                 else
@@ -277,7 +283,8 @@ char *rewrite_expr_methods(ParserContext *ctx, char *raw)
                     snprintf(call_buf, sizeof(call_buf), "%s__%s", final_struct, final_method);
                     char *mangled_call = merge_underscores(call_buf);
 
-                    dest += sprintf(dest, "%s(%s%s", mangled_call, is_ptr ? "" : "&", acc);
+                    dest += sprintf(dest, "%s(%s%s", mangled_call, is_ptr ? "" : "&",
+                                    acc); /* TODO: check buffer size */
                 }
                 zfree(final_struct);
                 zfree(final_method);
@@ -332,7 +339,8 @@ char *rewrite_expr_methods(ParserContext *ctx, char *raw)
                     snprintf(call_buf, sizeof(call_buf), "%s__%s", final_struct, final_method);
                     char *mangled_call = merge_underscores(call_buf);
 
-                    dest += sprintf(dest, "%s(%s%s)", mangled_call, final_cast, acc);
+                    dest += sprintf(dest, "%s(%s%s)", mangled_call, final_cast,
+                                    acc); /* TODO: check buffer size */
                     zfree(final_cast);
                 }
                 else
@@ -341,7 +349,8 @@ char *rewrite_expr_methods(ParserContext *ctx, char *raw)
                     snprintf(call_buf, sizeof(call_buf), "%s__%s", final_struct, final_method);
                     char *mangled_call = merge_underscores(call_buf);
 
-                    dest += sprintf(dest, "%s(%s%s)", mangled_call, is_ptr ? "" : "&", acc);
+                    dest += sprintf(dest, "%s(%s%s)", mangled_call, is_ptr ? "" : "&",
+                                    acc); /* TODO: check buffer size */
                 }
                 zfree(final_struct);
                 zfree(final_method);
@@ -379,7 +388,7 @@ char *rewrite_expr_methods(ParserContext *ctx, char *raw)
             Module *mod = find_module(ctx, acc);
             if (mod && mod->is_c_header)
             {
-                dest += sprintf(dest, "%s", field);
+                dest += sprintf(dest, "%s", field); /* TODO: check buffer size */
             }
             else
             {
@@ -400,23 +409,23 @@ char *rewrite_expr_methods(ParserContext *ctx, char *raw)
                     }
                     if (is_variant)
                     {
-                        dest += sprintf(dest, "%s__%s", acc, field);
+                        dest += sprintf(dest, "%s__%s", acc, field); /* TODO: check buffer size */
                     }
                     else
                     {
                         // Static method on Enum
-                        dest += sprintf(dest, "%s__%s", acc, field);
+                        dest += sprintf(dest, "%s__%s", acc, field); /* TODO: check buffer size */
                     }
                 }
                 else if (sdef || !mod)
                 {
                     // Struct static method, or Type static method
-                    dest += sprintf(dest, "%s__%s", acc, field);
+                    dest += sprintf(dest, "%s__%s", acc, field); /* TODO: check buffer size */
                 }
                 else
                 {
                     // Module function
-                    dest += sprintf(dest, "%s__%s", acc, field);
+                    dest += sprintf(dest, "%s__%s", acc, field); /* TODO: check buffer size */
                 }
             }
             continue;
@@ -504,7 +513,7 @@ char *rewrite_expr_methods(ParserContext *ctx, char *raw)
 
                     if (*src == ')')
                     {
-                        dest += sprintf(dest, "%s()", mangled);
+                        dest += sprintf(dest, "%s()", mangled); /* TODO: check buffer size */
                         src++;
                     }
                     else
@@ -512,7 +521,8 @@ char *rewrite_expr_methods(ParserContext *ctx, char *raw)
                         FuncSig *sig = find_func(ctx, func_name);
                         if (sig)
                         {
-                            dest += sprintf(dest, "%s(&(%s){0}", mangled, func_name);
+                            dest += sprintf(dest, "%s(&(%s){0}", mangled,
+                                            func_name); /* TODO: check buffer size */
                             while (*src && *src != ')')
                             {
                                 *dest++ = *src++;
@@ -525,7 +535,7 @@ char *rewrite_expr_methods(ParserContext *ctx, char *raw)
                         }
                         else
                         {
-                            dest += sprintf(dest, "%s(", mangled);
+                            dest += sprintf(dest, "%s(", mangled); /* TODO: check buffer size */
                             while (*src && *src != ')')
                             {
                                 *dest++ = *src++;
@@ -569,6 +579,8 @@ char *parse_and_convert_args(ParserContext *ctx, Lexer *l, char ***defaults_out,
     if (t.type != TOK_LPAREN)
     {
         zpanic_at(t, "Expected '(' in function args");
+        return NULL;
+        return NULL;
     }
 
     size_t buf_size = 8192;
@@ -619,11 +631,15 @@ char *parse_and_convert_args(ParserContext *ctx, Lexer *l, char ***defaults_out,
                     if (lexer_next(l).type != TOK_LPAREN)
                     {
                         zpanic_at(lexer_peek(l), "Expected ( after @ctype");
+                        return NULL;
+                        return NULL;
                     }
                     Token ctype_tok = lexer_next(l);
                     if (ctype_tok.type != TOK_STRING)
                     {
                         zpanic_at(ctype_tok, "@ctype requires a string argument");
+                        return NULL;
+                        return NULL;
                     }
                     // Extract string content (strip quotes)
                     ctype_override = xmalloc(ctype_tok.len - 1);
@@ -632,11 +648,15 @@ char *parse_and_convert_args(ParserContext *ctx, Lexer *l, char ***defaults_out,
                     if (lexer_next(l).type != TOK_RPAREN)
                     {
                         zpanic_at(lexer_peek(l), "Expected ) after @ctype string");
+                        return NULL;
+                        return NULL;
                     }
                 }
                 else
                 {
                     zpanic_at(attr, "Unknown parameter attribute @%.*s", attr.len, attr.start);
+                    return NULL;
+                    return NULL;
                 }
             }
 
@@ -656,7 +676,7 @@ char *parse_and_convert_args(ParserContext *ctx, Lexer *l, char ***defaults_out,
                 if (ctx->current_impl_struct)
                 {
                     char *buf_type = xmalloc(strlen(ctx->current_impl_struct) + 2);
-                    sprintf(buf_type, "%s*", ctx->current_impl_struct);
+                    sprintf(buf_type, "%s*", ctx->current_impl_struct); /* safe */
 
                     if (is_primitive_type_name(ctx->current_impl_struct))
                     {
@@ -718,6 +738,8 @@ char *parse_and_convert_args(ParserContext *ctx, Lexer *l, char ***defaults_out,
                 if (param_tok.type != TOK_IDENT)
                 {
                     zpanic_at(lexer_peek(l), "Expected arg name");
+                    return NULL;
+                    return NULL;
                 }
                 check_identifier(ctx, param_tok);
                 char *name = token_strdup(param_tok);
@@ -725,6 +747,8 @@ char *parse_and_convert_args(ParserContext *ctx, Lexer *l, char ***defaults_out,
                 if (lexer_next(l).type != TOK_COLON)
                 {
                     zpanic_at(lexer_peek(l), "Expected ':'");
+                    return NULL;
+                    return NULL;
                 }
 
                 Type *arg_type = parse_type_formal(ctx, l);
@@ -831,6 +855,8 @@ char *parse_and_convert_args(ParserContext *ctx, Lexer *l, char ***defaults_out,
     if (lexer_next(l).type != TOK_RPAREN)
     {
         zpanic_at(lexer_peek(l), "Expected ')' after args");
+        return NULL;
+        return NULL;
     }
 
     *defaults_out = defaults;

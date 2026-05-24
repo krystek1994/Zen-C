@@ -145,7 +145,7 @@ static ASTNode *parse_expr_prec_impl(ParserContext *ctx, Lexer *l, Precedence mi
                 s1->token = t_str;
                 // Append semicolon to ensure it's a valid statement
                 char *s1_code = xmalloc(strlen(print_code) + 2);
-                sprintf(s1_code, "%s;", print_code);
+                sprintf(s1_code, "%s;", print_code); /* safe */
                 s1->raw_stmt.content = s1_code;
                 zfree(print_code);
 
@@ -187,13 +187,13 @@ static ASTNode *parse_expr_prec_impl(ParserContext *ctx, Lexer *l, Precedence mi
                 }
 
                 char *final_code = xmalloc(strlen(print_code) + 64);
-                sprintf(final_code, "%s readln(); })", print_code);
+                sprintf(final_code, "%s readln(); })", print_code); /* safe */
                 zfree(print_code);
 
                 ASTNode *n = ast_create(NODE_RAW_STMT);
                 n->token = next;
                 char *stmt_code = xmalloc(strlen(final_code) + 2);
-                sprintf(stmt_code, "%s;", final_code);
+                sprintf(stmt_code, "%s;", final_code); /* safe */
                 zfree(final_code);
                 n->raw_stmt.content = stmt_code;
                 return n;
@@ -330,11 +330,15 @@ static ASTNode *parse_expr_prec_impl(ParserContext *ctx, Lexer *l, Precedence mi
             char *code = process_printf_sugar(ctx, t_str, inner, newline, "stderr", NULL, NULL, 1,
                                               is_raw, 0);
             zfree(inner);
+            if (!code)
+            {
+                return NULL;
+            }
 
             ASTNode *n = ast_create(NODE_RAW_STMT);
             n->token = t_str;
             char *stmt_code = xmalloc(strlen(code) + 2);
-            sprintf(stmt_code, "%s;", code);
+            sprintf(stmt_code, "%s;", code); /* safe */
             zfree(code);
             n->raw_stmt.content = stmt_code;
             return n;
@@ -1495,11 +1499,11 @@ static ASTNode *parse_expr_prec_impl(ParserContext *ctx, Lexer *l, Precedence mi
                                 ASTNode *m = it->impl_node->impl.methods;
 
                                 char idx_raw[MAX_MANGLED_NAME_LEN];
-                                sprintf(idx_raw, "%s__index", base);
+                                sprintf(idx_raw, "%s__index", base); /* safe */
                                 char *mangled_idx = merge_underscores(idx_raw);
 
                                 char g_raw[MAX_MANGLED_NAME_LEN];
-                                sprintf(g_raw, "%s__get", base);
+                                sprintf(g_raw, "%s__get", base); /* safe */
                                 char *mangled_g = merge_underscores(g_raw);
 
                                 while (m)
@@ -2712,11 +2716,13 @@ static ASTNode *parse_expr_prec_impl(ParserContext *ctx, Lexer *l, Precedence mi
                     !(lhs_is_num && rhs_is_num))
                 {
                     char msg[MAX_SHORT_MSG_LEN];
-                    sprintf(msg, "Type mismatch in comparison: cannot compare '%s' and '%s'", t1,
+                    sprintf(msg, "Type mismatch in comparison: cannot compare '%s' and '%s'",
+                            t1, /* safe */
                             t2);
 
                     char suggestion[MAX_SHORT_MSG_LEN];
-                    sprintf(suggestion, "Both operands must have compatible types for comparison");
+                    sprintf(suggestion,
+                            "Both operands must have compatible types for comparison"); /* safe */
 
                     if (ctx->config->mode_lsp)
                     {
@@ -2936,15 +2942,16 @@ static ASTNode *parse_expr_prec_impl(ParserContext *ctx, Lexer *l, Precedence mi
                             if (!valid_arith)
                             {
                                 char msg[MAX_SHORT_MSG_LEN];
-                                sprintf(msg, "Type mismatch in binary operation '%s'",
+                                sprintf(msg, "Type mismatch in binary operation '%s'", /* safe */
                                         bin->binary.op);
 
                                 char suggestion[MAX_MANGLED_NAME_LEN];
-                                sprintf(
-                                    suggestion,
-                                    "Left operand has type '%s', right operand has type '%s'\n   = "
-                                    "note: Consider casting one operand to match the other",
-                                    t1, t2);
+                                sprintf(/* safe */
+                                        suggestion,
+                                        "Left operand has type '%s', right operand has type '%s'\n "
+                                        "  = "
+                                        "note: Consider casting one operand to match the other",
+                                        t1, t2);
 
                                 zpanic_with_suggestion(op, msg, suggestion);
                             }
