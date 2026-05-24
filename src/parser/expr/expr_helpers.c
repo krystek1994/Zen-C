@@ -189,6 +189,10 @@ CallArgs parse_call_args(ParserContext *ctx, Lexer *l, FuncSig *sig)
     {
         while (1)
         {
+            if (lexer_peek(l).type == TOK_EOF)
+            {
+                break;
+            }
             char *arg_name = NULL;
             Token t1 = lexer_peek(l);
             if (t1.type == TOK_IDENT)

@@ -443,6 +443,10 @@ format-check:
 
 # Linting
 lint: format-check
+
+check-codebase:
+	@echo "Running codebase convention checks..."
+	@scripts/check-codebase.sh
 	@echo "=> Running shellcheck on test scripts"
 	-shellcheck tests/scripts/*.sh
 	@echo "=> Lint complete"

@@ -39,11 +39,16 @@ ASTNode *parse_match(ParserContext *ctx, Lexer *l)
     }
 
     ASTNode *h = 0, *tl = 0;
-    while (lexer_peek(l).type != TOK_RBRACE)
+    while (1)
     {
         skip_comments(l);
         if (lexer_peek(l).type == TOK_RBRACE)
         {
+            break;
+        }
+        if (lexer_peek(l).type == TOK_EOF)
+        {
+            zpanic_at(lexer_peek(l), "Unexpected end of file in match body");
             break;
         }
         if (lexer_peek(l).type == TOK_COMMA)
@@ -53,6 +58,11 @@ ASTNode *parse_match(ParserContext *ctx, Lexer *l)
         skip_comments(l);
         if (lexer_peek(l).type == TOK_RBRACE)
         {
+            break;
+        }
+        if (lexer_peek(l).type == TOK_EOF)
+        {
+            zpanic_at(lexer_peek(l), "Unexpected end of file in match body");
             break;
         }
 
@@ -331,6 +341,10 @@ ASTNode *parse_match(ParserContext *ctx, Lexer *l)
                             lexer_init(&tmp, payload_node_field->field.type, ctx->config,
                                        ctx->current_filename);
                             binding_type_info = parse_type_formal(ctx, &tmp);
+                            if (!binding_type_info)
+                            {
+                                continue;
+                            }
                             binding_type = type_to_string(binding_type_info);
                             payload_node_field = payload_node_field->next;
                         }

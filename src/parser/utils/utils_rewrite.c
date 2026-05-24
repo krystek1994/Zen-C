@@ -588,6 +588,10 @@ char *parse_and_convert_args(ParserContext *ctx, Lexer *l, char ***defaults_out,
     {
         while (1)
         {
+            if (lexer_peek(l).type == TOK_EOF)
+            {
+                break;
+            }
             if (count >= max_args)
             {
                 int new_max = max_args * 2;
@@ -724,6 +728,10 @@ char *parse_and_convert_args(ParserContext *ctx, Lexer *l, char ***defaults_out,
                 }
 
                 Type *arg_type = parse_type_formal(ctx, l);
+                if (!arg_type)
+                {
+                    return NULL;
+                }
                 if (is_const_param)
                 {
                     arg_type->is_const = 1;

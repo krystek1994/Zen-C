@@ -21,7 +21,7 @@ void check_format_string(ASTNode *call, Token t);
 void analyze_lambda_captures(ParserContext *ctx, ASTNode *lambda);
 
 // From expr_literal.c
-ASTNode *parse_int_literal(Token t);
+ASTNode *parse_int_literal(ParserContext *ctx, Token t);
 ASTNode *parse_float_literal(Token t);
 ASTNode *parse_string_literal(ParserContext *ctx, Token t);
 ASTNode *parse_fstring_literal(ParserContext *ctx, Token t);

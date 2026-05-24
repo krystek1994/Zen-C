@@ -171,7 +171,7 @@ static void try_parse_c_struct_decl(ParserContext *ctx, const char *line)
                 char *name = xmalloc(name_len + 1);
                 strncpy(name, name_start, name_len);
                 name[name_len] = '\0';
-                register_type_alias(ctx, name, name, NULL, 1, NULL, (Token){0}, 0);
+                register_type_alias(ctx, name, name, NULL, 1, NULL, TOKEN_UNKNOWN, 0);
                 register_extern_symbol(ctx, name);
                 zfree(name);
             }
@@ -210,7 +210,7 @@ static void try_parse_c_struct_decl(ParserContext *ctx, const char *line)
         const char *c_keyword = is_union ? "union" : "struct";
         char *c_type = xmalloc(strlen(c_keyword) + 1 + tag_len + 1);
         sprintf(c_type, "%s %s", c_keyword, tag_name);
-        register_type_alias(ctx, tag_name, c_type, NULL, 1, NULL, (Token){0}, 0);
+        register_type_alias(ctx, tag_name, c_type, NULL, 1, NULL, TOKEN_UNKNOWN, 0);
         register_extern_symbol(ctx, tag_name);
         zfree(c_type);
     }
@@ -471,8 +471,17 @@ ASTNode *parse_import(ParserContext *ctx, Lexer *l, int is_re_export)
         is_selective = 1;
         lexer_next(l);
 
-        while (lexer_peek(l).type != TOK_RBRACE)
+        while (1)
         {
+            if (lexer_peek(l).type == TOK_RBRACE)
+            {
+                break;
+            }
+            if (lexer_peek(l).type == TOK_EOF)
+            {
+                zpanic_at(lexer_peek(l), "Unexpected end of file in selective import");
+                break;
+            }
             if (symbols.length > 0 && lexer_peek(l).type == TOK_COMMA)
             {
                 lexer_next(l);

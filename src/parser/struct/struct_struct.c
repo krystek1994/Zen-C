@@ -41,6 +41,11 @@ ASTNode *parse_struct(ParserContext *ctx, Lexer *l, int is_union, int is_opaque,
             gps[gp_count++] = token_strdup(g);
 
             Token next = lexer_peek(l);
+            if (next.type == TOK_EOF)
+            {
+                zpanic_at(next, "Expected '>' in generic parameter list");
+                break;
+            }
             if (next.type == TOK_COMMA)
             {
                 lexer_next(l); // eat ,
@@ -118,6 +123,11 @@ ASTNode *parse_struct(ParserContext *ctx, Lexer *l, int is_union, int is_opaque,
             lexer_next(l);
             break;
         }
+        if (t.type == TOK_EOF)
+        {
+            zpanic_at(t, "Unterminated struct body — expected '}'");
+            break;
+        }
         if (t.type == TOK_SEMICOLON || t.type == TOK_COMMA)
         {
             lexer_next(l);
@@ -140,6 +150,10 @@ ASTNode *parse_struct(ParserContext *ctx, Lexer *l, int is_union, int is_opaque,
                 check_identifier(ctx, field_name);
                 lexer_next(l); // eat :
                 Type *ft = parse_type_formal(ctx, l);
+                if (!ft)
+                {
+                    return NULL;
+                }
                 char *field_type_str = type_to_c_string(ft);
                 z_parse_expect(l, TOK_SEMICOLON, "Expected ;");
 
@@ -164,6 +178,10 @@ ASTNode *parse_struct(ParserContext *ctx, Lexer *l, int is_union, int is_opaque,
             // Normal use -> Mixin (Flatten)
             // Parse the type (e.g. Header<I32>)
             Type *use_type = parse_type_formal(ctx, l);
+            if (!use_type)
+            {
+                return NULL;
+            }
             char *use_name = type_to_string(use_type);
 
             z_parse_expect(l, TOK_SEMICOLON, "Expected ; after use");
@@ -218,6 +236,10 @@ ASTNode *parse_struct(ParserContext *ctx, Lexer *l, int is_union, int is_opaque,
             check_identifier(ctx, f_name);
             z_parse_expect(l, TOK_COLON, "Expected :");
             Type *ft = parse_type_formal(ctx, l);
+            if (!ft)
+            {
+                return NULL;
+            }
             char *f_type = type_to_c_string(ft);
 
             ASTNode *f = ast_create(NODE_FIELD);

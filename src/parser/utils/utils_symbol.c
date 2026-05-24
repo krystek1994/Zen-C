@@ -11,7 +11,7 @@
 
 void add_symbol(ParserContext *ctx, const char *n, const char *t, Type *type_info, int is_export)
 {
-    add_symbol_with_token(ctx, n, t, type_info, (Token){0}, is_export);
+    add_symbol_with_token(ctx, n, t, type_info, TOKEN_UNKNOWN, is_export);
 }
 
 void add_symbol_with_token(ParserContext *ctx, const char *n, const char *t, Type *type_info,
@@ -342,7 +342,7 @@ void register_enum_variant(ParserContext *ctx, const char *vname, const char *en
         }
     }
 
-    audit_section_5(ctx, ctx->global_scope, vname, NULL, (Token){0});
+    audit_section_5(ctx, ctx->global_scope, vname, NULL, TOKEN_UNKNOWN);
 
     EnumVariantReg *r = xcalloc(1, sizeof(EnumVariantReg));
     r->enum_name = ename ? xstrdup(ename) : NULL;

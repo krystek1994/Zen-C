@@ -96,6 +96,10 @@ Type *parse_type_formal(ParserContext *ctx, Lexer *l)
             }
 
             Type *arg = parse_type_formal(ctx, l);
+            if (!arg)
+            {
+                break;
+            }
             fn_type->arg_count++;
             fn_type->args = xrealloc(fn_type->args, sizeof(Type *) * fn_type->arg_count);
             fn_type->args[fn_type->arg_count - 1] = arg;
@@ -116,6 +120,11 @@ Type *parse_type_formal(ParserContext *ctx, Lexer *l)
         {
             lexer_next(l); // eat ->
             fn_type->inner = parse_type_formal(ctx, l);
+            if (!fn_type->inner)
+            {
+                RECURSION_EXIT(ctx);
+                return NULL;
+            }
         }
         else
         {

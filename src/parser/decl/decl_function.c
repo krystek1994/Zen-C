@@ -126,6 +126,10 @@ ASTNode *parse_function(ParserContext *ctx, Lexer *l, int is_async, int is_exter
     {
         lexer_next(l);
         ret_type_obj = parse_type_formal(ctx, l);
+        if (!ret_type_obj)
+        {
+            return NULL;
+        }
         ret = type_to_string(ret_type_obj);
     }
     else if (lexer_peek(l).type == TOK_COLON)

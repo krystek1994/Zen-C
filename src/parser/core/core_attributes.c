@@ -239,6 +239,10 @@ DeclarationAttributes parse_attributes(ParserContext *ctx, Lexer *l)
                     while (1)
                     {
                         Token inner_t = lexer_next(l);
+                        if (inner_t.type == TOK_EOF)
+                        {
+                            break;
+                        }
                         if ((inner_t.type == TOK_NOT ||
                              (inner_t.type == TOK_IDENT && inner_t.len == 3 &&
                               strncmp(inner_t.start, "not", 3) == 0)))
@@ -334,6 +338,10 @@ DeclarationAttributes parse_attributes(ParserContext *ctx, Lexer *l)
                     while (1)
                     {
                         Token inner_t = lexer_next(l);
+                        if (inner_t.type == TOK_EOF)
+                        {
+                            break;
+                        }
                         if ((inner_t.type == TOK_NOT ||
                              (inner_t.type == TOK_IDENT && inner_t.len == 3 &&
                               strncmp(inner_t.start, "not", 3) == 0)))
@@ -581,6 +589,11 @@ DeclarationAttributes parse_attributes(ParserContext *ctx, Lexer *l)
                             new_attr->args[new_attr->arg_count++] = token_strdup(inner_t);
                         }
 
+                        if (lexer_peek(l).type == TOK_EOF)
+                        {
+                            zpanic_at(lexer_peek(l), "Unexpected end of file in attribute args");
+                            break;
+                        }
                         if (lexer_peek(l).type == TOK_COMMA)
                         {
                             lexer_next(l);

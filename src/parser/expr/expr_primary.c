@@ -78,7 +78,7 @@ ASTNode *parse_primary_impl(ParserContext *ctx, Lexer *l)
     // Literals
     if (t.type == TOK_INT)
     {
-        node = parse_int_literal(t);
+        node = parse_int_literal(ctx, t);
     }
     else if (t.type == TOK_FLOAT)
     {
@@ -185,6 +185,11 @@ ASTNode *parse_primary_impl(ParserContext *ctx, Lexer *l)
             skip_comments(l);
             if (lexer_peek(l).type == TOK_RBRACE)
             {
+                break;
+            }
+            if (lexer_peek(l).type == TOK_EOF)
+            {
+                zpanic_at(lexer_peek(l), "Unexpected end of file in match body");
                 break;
             }
             if (lexer_peek(l).type == TOK_COMMA)
@@ -473,6 +478,10 @@ ASTNode *parse_primary_impl(ParserContext *ctx, Lexer *l)
             if (found_arrow)
             {
                 Type *param_type = parse_type_formal(ctx, &lookahead);
+                if (!param_type)
+                {
+                    return NULL;
+                }
                 if (lexer_peek(&lookahead).type == TOK_ARROW)
                 {
                     *l = lookahead;
@@ -496,6 +505,10 @@ ASTNode *parse_primary_impl(ParserContext *ctx, Lexer *l)
         char *acc = ident;
         while (1)
         {
+            if (lexer_peek(l).type == TOK_EOF)
+            {
+                break;
+            }
             int changed = 0;
             if (lexer_peek(l).type == TOK_DCOLON)
             {
@@ -896,6 +909,10 @@ ASTNode *parse_primary_impl(ParserContext *ctx, Lexer *l)
                             break;
                         }
                         Type *formal_type = parse_type_formal(ctx, l);
+                        if (!formal_type)
+                        {
+                            return NULL;
+                        }
                         concrete_types[arg_count] = type_to_string(formal_type);
                         unmangled_types[arg_count] = type_to_string(formal_type);
                         arg_count++;
@@ -1941,6 +1958,10 @@ ASTNode *parse_primary_impl(ParserContext *ctx, Lexer *l)
                     {
                         lexer_next(&actual_parse);
                         param_types[i] = parse_type_formal(ctx, &actual_parse);
+                        if (!param_types[i])
+                        {
+                            return NULL;
+                        }
                     }
                     Token sep = lexer_next(&actual_parse);
                     if (sep.type == TOK_RPAREN)
@@ -2021,6 +2042,10 @@ ASTNode *parse_primary_impl(ParserContext *ctx, Lexer *l)
                 {
 
                     Type *cast_type_obj = parse_type_formal(ctx, l);
+                    if (!cast_type_obj)
+                    {
+                        return NULL;
+                    }
                     char *cast_type = type_to_string(cast_type_obj);
                     {
                         Token inner_t = lexer_next(l);
@@ -2159,6 +2184,10 @@ ASTNode *parse_primary_impl(ParserContext *ctx, Lexer *l)
                                 {
                                     lexer_next(l);
                                     param_types[nparams] = parse_type_formal(ctx, l);
+                                    if (!param_types[nparams])
+                                    {
+                                        return NULL;
+                                    }
                                 }
                                 nparams++;
 
@@ -2254,6 +2283,10 @@ ASTNode *parse_primary_impl(ParserContext *ctx, Lexer *l)
 
     while (1)
     {
+        if (lexer_peek(l).type == TOK_EOF)
+        {
+            break;
+        }
         if (lexer_peek(l).type == TOK_LPAREN)
         {
             (void)lexer_next(l); // consume '('

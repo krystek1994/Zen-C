@@ -51,6 +51,11 @@ ASTNode *parse_trait(ParserContext *ctx, Lexer *l)
             generic_count++;
 
             Token sep = lexer_peek(l);
+            if (sep.type == TOK_EOF)
+            {
+                zpanic_at(sep, "Expected '>' in generic parameter list");
+                break;
+            }
             if (sep.type == TOK_COMMA)
             {
                 lexer_next(l);
@@ -85,6 +90,11 @@ ASTNode *parse_trait(ParserContext *ctx, Lexer *l)
         if (lexer_peek(l).type == TOK_RBRACE)
         {
             lexer_next(l);
+            break;
+        }
+        if (lexer_peek(l).type == TOK_EOF)
+        {
+            zpanic_at(lexer_peek(l), "Unexpected end of file in trait body");
             break;
         }
 
@@ -122,6 +132,10 @@ ASTNode *parse_trait(ParserContext *ctx, Lexer *l)
         {
             lexer_next(l);
             ret_type_obj = parse_type_formal(ctx, l);
+            if (!ret_type_obj)
+            {
+                return NULL;
+            }
             zfree(ret);
             ret = type_to_string(ret_type_obj);
         }

@@ -181,6 +181,11 @@ ASTNode *parse_impl(ParserContext *ctx, Lexer *l)
                 lexer_next(l);
                 break;
             }
+            if (lexer_peek(l).type == TOK_EOF)
+            {
+                zpanic_at(lexer_peek(l), "Unexpected end of file in impl body");
+                break;
+            }
             DeclarationAttributes attrs = {0};
             if (lexer_peek(l).type == TOK_AT)
             {
@@ -384,6 +389,11 @@ ASTNode *parse_impl(ParserContext *ctx, Lexer *l)
                     lexer_next(l);
                     break;
                 }
+                if (lexer_peek(l).type == TOK_EOF)
+                {
+                    zpanic_at(lexer_peek(l), "Unexpected end of file in impl body");
+                    break;
+                }
                 DeclarationAttributes attrs = {0};
                 if (lexer_peek(l).type == TOK_AT)
                 {
@@ -509,6 +519,11 @@ ASTNode *parse_impl(ParserContext *ctx, Lexer *l)
                 if (lexer_peek(l).type == TOK_RBRACE)
                 {
                     lexer_next(l);
+                    break;
+                }
+                if (lexer_peek(l).type == TOK_EOF)
+                {
+                    zpanic_at(lexer_peek(l), "Unexpected end of file in impl body");
                     break;
                 }
 

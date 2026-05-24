@@ -203,10 +203,10 @@ int driver_compile(ZenCompiler *compiler)
             char *extra_src = load_file(path, ctx.current_filename);
             if (!extra_src)
             {
-                zerror_at((Token){0}, "could not read file '%s'", extra_path);
+                zerror_at(TOKEN_UNKNOWN, "could not read file '%s'", extra_path);
                 if (real_path)
                 {
-                    zfree(real_path);
+                    free(real_path);
                 }
                 return 1;
             }
@@ -240,7 +240,7 @@ int driver_compile(ZenCompiler *compiler)
             }
             if (real_path)
             {
-                zfree(real_path);
+                free(real_path);
             }
         }
     }

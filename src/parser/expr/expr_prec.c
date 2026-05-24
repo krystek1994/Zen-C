@@ -706,6 +706,10 @@ static ASTNode *parse_expr_prec_impl(ParserContext *ctx, Lexer *l, Precedence mi
         }
 
         Type *tinfo = parse_type_formal(ctx, l);
+        if (!tinfo)
+        {
+            return NULL;
+        }
 
         if (lexer_next(l).type != TOK_RPAREN)
         {
@@ -1158,6 +1162,10 @@ static ASTNode *parse_expr_prec_impl(ParserContext *ctx, Lexer *l, Precedence mi
             {
                 while (1)
                 {
+                    if (lexer_peek(l).type == TOK_EOF)
+                    {
+                        break;
+                    }
                     char *arg_name = NULL;
 
                     // Check for named argument: IDENT : expr
@@ -1875,6 +1883,10 @@ static ASTNode *parse_expr_prec_impl(ParserContext *ctx, Lexer *l, Precedence mi
                             unmangled = xrealloc(unmangled, cap * sizeof(char *));
                         }
                         Type *inner_t = parse_type_formal(ctx, l);
+                        if (!inner_t)
+                        {
+                            return NULL;
+                        }
                         concrete[argc] = type_to_string(inner_t);
                         unmangled[argc] = type_to_c_string(inner_t);
                         argc++;

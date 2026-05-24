@@ -532,6 +532,15 @@ enum
 
 #define RECURSION_EXIT(ctx) ((ctx)->recursion_depth)--
 
+// Break out of a parsing loop when EOF is reached unexpectedly.
+// Place after the closing-delimiter checks in every while(1) token loop.
+#define TOK_EOF_GUARD(tok)                                                                         \
+    if ((tok).type == TOK_EOF)                                                                     \
+    {                                                                                              \
+        zpanic_at(tok, "Unexpected end of file");                                                  \
+        break;                                                                                     \
+    }
+
 #define ATTACH_DOC_COMMENT(ctx, node)                                                              \
     if ((node) && (ctx)->last_doc_comment)                                                         \
     {                                                                                              \

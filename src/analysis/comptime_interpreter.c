@@ -133,7 +133,7 @@ static void yield_append(CInterp *ci, const char *s)
         }
         if (new_cap > MAX_YIELD)
         {
-            zerror_at((Token){0}, "comptime yield buffer exceeded max size (1 MiB)");
+            zerror_at(TOKEN_UNKNOWN, "comptime yield buffer exceeded max size (1 MiB)");
             ci->error_happened = 1;
             return;
         }
@@ -567,7 +567,7 @@ static CValue call_builtin(CInterp *ci, const char *name, ASTNode *args)
     if (strcmp(name, "compile_error") == 0)
     {
         const char *msg = (arg.type == VAL_STRING && arg.as.s) ? arg.as.s : "comptime error";
-        zerror_at((Token){0}, "comptime error: %s", msg);
+        zerror_at(TOKEN_UNKNOWN, "comptime error: %s", msg);
         ci->error_happened = 1;
         val_free(&arg);
         return val_null;
@@ -656,7 +656,7 @@ static CValue eval_expr(CInterp *ci, ASTNode *node)
 {
     if (ci->step_count++ > MAX_STEPS)
     {
-        zerror_at(node ? node->token : (Token){0},
+        zerror_at(node ? node->token : TOKEN_UNKNOWN,
                   "comptime: step limit exceeded (possible infinite loop)");
         ci->error_happened = 1;
         return val_null;

@@ -209,7 +209,7 @@ int is_type_copy(ParserContext *ctx, Type *t)
     {
         return 1; // Default to Copy for unknown types
     }
-    RECURSION_GUARD_TOKEN(ctx, (Token){0}, 1);
+    RECURSION_GUARD_TOKEN(ctx, TOKEN_UNKNOWN, 1);
 
     int result = 1;
     if (t->traits.has_drop)
@@ -441,7 +441,7 @@ void mark_symbol_valid(ParserContext *ctx, ZenSymbol *sym, ASTNode *context_node
         {
             mark_valid_in_state(ctx->move_state, path,
                                 context_node ? context_node->token
-                                             : (sym ? sym->decl_token : (Token){0}));
+                                             : (sym ? sym->decl_token : TOKEN_UNKNOWN));
             zfree(path);
         }
     }

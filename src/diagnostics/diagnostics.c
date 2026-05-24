@@ -5,6 +5,7 @@
 #include "parser.h"
 #include "lsp/cJSON.h"
 #include <stdio.h>
+#include <stddef.h>
 
 // Local diagnostic context — replaces g_parser_ctx dependency.
 // Set via diag_set_parser_ctx() at the start of each compilation.
@@ -30,6 +31,43 @@ static const char *diag_filename(Token t)
         return t.file;
     }
     return d_ctx.parser_ctx ? d_ctx.parser_ctx->current_filename : "unknown";
+}
+
+static void diag_print_location(FILE *f, Token t)
+{
+    const char *file = diag_filename(t);
+    if (t.line > 0 && t.col > 0)
+    {
+        fprintf(f, COLOR_BLUE "  --> " COLOR_RESET "%s:%d:%d\n", file, t.line, t.col);
+    }
+    else
+    {
+        fprintf(f, COLOR_BLUE "  --> " COLOR_RESET "%s\n", file);
+    }
+}
+
+static void diag_print_context(FILE *f, Token t, const char *caret_color)
+{
+    if (!t.start || t.col <= 0)
+    {
+        return;
+    }
+    const char *line_start = t.start - (t.col - 1);
+    const char *line_end = t.start;
+    while (*line_end && *line_end != '\n')
+    {
+        line_end++;
+    }
+    ptrdiff_t line_len = line_end - line_start;
+    fprintf(f, COLOR_BLUE "   |\n" COLOR_RESET);
+    fprintf(f, COLOR_BLUE "%-3d| " COLOR_RESET "%.*s\n", t.line, (int)line_len, line_start);
+    fprintf(f, COLOR_BLUE "   | " COLOR_RESET);
+    for (int i = 0; i < t.col - 1; i++)
+    {
+        fprintf(f, " ");
+    }
+    fprintf(f, "%s^ here" COLOR_RESET "\n", caret_color);
+    fprintf(f, COLOR_BLUE "   |\n" COLOR_RESET);
 }
 
 static void emit_json(const char *level, Token t, const char *msg, const char *suggestion,
@@ -118,7 +156,7 @@ void zwarn(const char *fmt, ...)
         va_start(a, fmt);
         vsnprintf(msg, sizeof(msg), fmt, a);
         va_end(a);
-        emit_json("warning", (Token){0}, msg, NULL, DIAG_NONE);
+        emit_json("warning", TOKEN_UNKNOWN, msg, NULL, DIAG_NONE);
         return;
     }
     g_warning_count++;
@@ -153,11 +191,7 @@ void zwarn_at_diag(int diag_id, Token t, const char *fmt, ...)
         fprintf(stderr, "%s", msg);
         fprintf(stderr, COLOR_RESET "\n");
 
-        // Location.
-        fprintf(
-            stderr, COLOR_BLUE "  --> " COLOR_RESET "%s:%d:%d\n",
-            (t.file ? t.file : (d_ctx.parser_ctx ? d_ctx.parser_ctx->current_filename : "unknown")),
-            t.line, t.col);
+        diag_print_location(stderr, t);
     }
 }
 
@@ -186,34 +220,17 @@ void zwarn_at(Token t, const char *fmt, ...)
     fprintf(stderr, COLOR_RESET "\n");
     va_end(a);
 
-    // Location.
-    fprintf(stderr, COLOR_BLUE "  --> " COLOR_RESET "%s:%d:%d\n",
-            (t.file ? t.file : (d_ctx.parser_ctx ? d_ctx.parser_ctx->current_filename : "unknown")),
-            t.line, t.col);
-
     // Context. Only if token has valid data.
-    if (t.start)
+    if (t.start && t.col > 0)
     {
-        const char *line_start = t.start - (t.col - 1);
-        const char *line_end = t.start;
-        while (*line_end && *line_end != '\n')
-        {
-            line_end++;
-        }
-        ptrdiff_t line_len = line_end - line_start;
-
+        diag_print_location(stderr, t);
+        diag_print_context(stderr, t, COLOR_YELLOW);
         fprintf(stderr, COLOR_BLUE "   |\n" COLOR_RESET);
-        fprintf(stderr, COLOR_BLUE "%-3d| " COLOR_RESET "%.*s\n", t.line, line_len, line_start);
-        fprintf(stderr, COLOR_BLUE "   | " COLOR_RESET);
-
-        // Caret.
-        for (int i = 0; i < t.col - 1; i++)
-        {
-            fprintf(stderr, " ");
-        }
-        fprintf(stderr, COLOR_YELLOW "^ here" COLOR_RESET "\n");
-        fprintf(stderr, COLOR_BLUE "   |\n" COLOR_RESET);
-        fprintf(stderr, COLOR_BLUE "   |\n" COLOR_RESET);
+    }
+    else
+    {
+        // No valid token position — just print the bare location line.
+        diag_print_location(stderr, t);
     }
 }
 
@@ -247,38 +264,19 @@ void zwarn_with_suggestion(Token t, const char *msg, const char *suggestion)
     g_warning_count++;
     fprintf(stderr, COLOR_YELLOW "warning: " COLOR_RESET COLOR_BOLD "%s" COLOR_RESET "\n", msg);
 
-    // Location.
-    fprintf(stderr, COLOR_BLUE "  --> " COLOR_RESET "%s:%d:%d\n",
-            (t.file ? t.file : (d_ctx.parser_ctx ? d_ctx.parser_ctx->current_filename : "unknown")),
-            t.line, t.col);
-
     // Context.
-    if (t.start)
+    if (t.start && t.col > 0)
     {
-        const char *line_start = t.start - (t.col - 1);
-        const char *line_end = t.start;
-        while (*line_end && *line_end != '\n')
-        {
-            line_end++;
-        }
-        ptrdiff_t line_len = line_end - line_start;
-
-        fprintf(stderr, COLOR_BLUE "   |\n" COLOR_RESET);
-        fprintf(stderr, COLOR_BLUE "%-3d| " COLOR_RESET "%.*s\n", t.line, line_len, line_start);
-        fprintf(stderr, COLOR_BLUE "   | " COLOR_RESET);
-
-        // Caret.
-        for (int i = 0; i < t.col - 1; i++)
-        {
-            fprintf(stderr, " ");
-        }
-        fprintf(stderr, COLOR_YELLOW "^ here" COLOR_RESET "\n");
-        // Suggestion.
+        diag_print_location(stderr, t);
+        diag_print_context(stderr, t, COLOR_YELLOW);
         if (suggestion)
         {
-            fprintf(stderr, COLOR_BLUE "   |\n" COLOR_RESET);
             fprintf(stderr, COLOR_CYAN "   = note: " COLOR_RESET "%s\n", suggestion);
         }
+    }
+    else
+    {
+        diag_print_location(stderr, t);
     }
 }
 
@@ -312,32 +310,16 @@ void zpanic_at(Token t, const char *fmt, ...)
     fprintf(stderr, COLOR_RESET "\n");
     va_end(a);
 
-    // Location: '--> file:line:col'.
-    fprintf(stderr, COLOR_BLUE "  --> " COLOR_RESET "%s:%d:%d\n",
-            (t.file ? t.file : (d_ctx.parser_ctx ? d_ctx.parser_ctx->current_filename : "unknown")),
-            t.line, t.col);
-
     // Context line.
-    const char *line_start = t.start - (t.col - 1);
-    const char *line_end = t.start;
-    while (*line_end && *line_end != '\n')
+    if (t.start && t.col > 0)
     {
-        line_end++;
+        diag_print_location(stderr, t);
+        diag_print_context(stderr, t, COLOR_RED);
     }
-    ptrdiff_t line_len = line_end - line_start;
-
-    // Visual bar.
-    fprintf(stderr, COLOR_BLUE "   |\n" COLOR_RESET);
-    fprintf(stderr, COLOR_BLUE "%-3d| " COLOR_RESET "%.*s\n", t.line, line_len, line_start);
-    fprintf(stderr, COLOR_BLUE "   | " COLOR_RESET);
-
-    // caret
-    for (int i = 0; i < t.col - 1; i++)
+    else
     {
-        fprintf(stderr, " ");
+        diag_print_location(stderr, t);
     }
-    fprintf(stderr, COLOR_RED "^ here" COLOR_RESET "\n");
-    fprintf(stderr, COLOR_BLUE "   |\n" COLOR_RESET);
 
     g_error_count++;
     if (d_ctx.parser_ctx && d_ctx.parser_ctx->is_fault_tolerant && d_ctx.parser_ctx->on_error)
@@ -386,35 +368,21 @@ void zpanic_with_suggestion(Token t, const char *msg, const char *suggestion)
     // Header.
     fprintf(stderr, COLOR_RED "error: " COLOR_RESET COLOR_BOLD "%s" COLOR_RESET "\n", msg);
 
-    // Location.
-    fprintf(stderr, COLOR_BLUE "  --> " COLOR_RESET "%s:%d:%d\n",
-            (t.file ? t.file : (d_ctx.parser_ctx ? d_ctx.parser_ctx->current_filename : "unknown")),
-            t.line, t.col);
-
-    // Context.
-    const char *line_start = t.start - (t.col - 1);
-    const char *line_end = t.start;
-    while (*line_end && *line_end != '\n')
-    {
-        line_end++;
-    }
-    ptrdiff_t line_len = line_end - line_start;
-
-    fprintf(stderr, COLOR_BLUE "   |\n" COLOR_RESET);
-    fprintf(stderr, COLOR_BLUE "%-3d| " COLOR_RESET "%.*s\n", t.line, line_len, line_start);
-    fprintf(stderr, COLOR_BLUE "   | " COLOR_RESET);
-    for (int i = 0; i < t.col - 1; i++)
-    {
-        fprintf(stderr, " ");
-    }
-    fprintf(stderr, COLOR_RED "^ here" COLOR_RESET "\n");
     g_error_count++;
 
-    // Suggestion.
-    if (suggestion)
+    // Context.
+    if (t.start && t.col > 0)
     {
-        fprintf(stderr, COLOR_BLUE "   |\n" COLOR_RESET);
-        fprintf(stderr, COLOR_CYAN "   = help: " COLOR_RESET "%s\n", suggestion);
+        diag_print_location(stderr, t);
+        diag_print_context(stderr, t, COLOR_RED);
+        if (suggestion)
+        {
+            fprintf(stderr, COLOR_CYAN "   = help: " COLOR_RESET "%s\n", suggestion);
+        }
+    }
+    else
+    {
+        diag_print_location(stderr, t);
     }
 
     if (d_ctx.parser_ctx && d_ctx.parser_ctx->is_fault_tolerant && d_ctx.parser_ctx->on_error)
@@ -473,28 +441,16 @@ void zpanic_with_hints(Token t, const char *msg, const char *const *hints)
     // Header.
     fprintf(stderr, COLOR_RED "error: " COLOR_RESET COLOR_BOLD "%s" COLOR_RESET "\n", msg);
 
-    // Location.
-    fprintf(stderr, COLOR_BLUE "  --> " COLOR_RESET "%s:%d:%d\n",
-            (t.file ? t.file : (d_ctx.parser_ctx ? d_ctx.parser_ctx->current_filename : "unknown")),
-            t.line, t.col);
-
     // Context.
-    const char *line_start = t.start - (t.col - 1);
-    const char *line_end = t.start;
-    while (*line_end && *line_end != '\n')
+    if (t.start && t.col > 0)
     {
-        line_end++;
+        diag_print_location(stderr, t);
+        diag_print_context(stderr, t, COLOR_RED);
     }
-    ptrdiff_t line_len = line_end - line_start;
-
-    fprintf(stderr, COLOR_BLUE "   |\n" COLOR_RESET);
-    fprintf(stderr, COLOR_BLUE "%-3d| " COLOR_RESET "%.*s\n", t.line, line_len, line_start);
-    fprintf(stderr, COLOR_BLUE "   | " COLOR_RESET);
-    for (int i = 0; i < t.col - 1; i++)
+    else
     {
-        fprintf(stderr, " ");
+        diag_print_location(stderr, t);
     }
-    fprintf(stderr, COLOR_RED "^ here" COLOR_RESET "\n");
 
     // Hints.
     if (hints)
@@ -567,34 +523,15 @@ void zerror_at(Token t, const char *fmt, ...)
     fprintf(stderr, COLOR_RESET "\n");
     va_end(a);
 
-    // Location: '--> file:line:col'.
-    fprintf(stderr, COLOR_BLUE "  --> " COLOR_RESET "%s:%d:%d\n",
-            (t.file ? t.file : (d_ctx.parser_ctx ? d_ctx.parser_ctx->current_filename : "unknown")),
-            t.line, t.col);
-
     // Context line.
-    if (t.start)
+    if (t.start && t.col > 0)
     {
-        const char *line_start = t.start - (t.col - 1);
-        const char *line_end = t.start;
-        while (*line_end && *line_end != '\n')
-        {
-            line_end++;
-        }
-        ptrdiff_t line_len = line_end - line_start;
-
-        // Visual bar.
-        fprintf(stderr, COLOR_BLUE "   |\n" COLOR_RESET);
-        fprintf(stderr, COLOR_BLUE "%-3d| " COLOR_RESET "%.*s\n", t.line, line_len, line_start);
-        fprintf(stderr, COLOR_BLUE "   | " COLOR_RESET);
-
-        // caret
-        for (int i = 0; i < t.col - 1; i++)
-        {
-            fprintf(stderr, " ");
-        }
-        fprintf(stderr, COLOR_RED "^ here" COLOR_RESET "\n");
-        fprintf(stderr, COLOR_BLUE "   |\n" COLOR_RESET);
+        diag_print_location(stderr, t);
+        diag_print_context(stderr, t, COLOR_RED);
+    }
+    else
+    {
+        diag_print_location(stderr, t);
     }
 
     if (d_ctx.parser_ctx && d_ctx.parser_ctx->on_error)
@@ -629,37 +566,19 @@ void zerror_with_suggestion(Token t, const char *msg, const char *suggestion)
     // Header.
     fprintf(stderr, COLOR_RED "error: " COLOR_RESET COLOR_BOLD "%s" COLOR_RESET "\n", msg);
 
-    // Location.
-    fprintf(stderr, COLOR_BLUE "  --> " COLOR_RESET "%s:%d:%d\n",
-            (t.file ? t.file : (d_ctx.parser_ctx ? d_ctx.parser_ctx->current_filename : "unknown")),
-            t.line, t.col);
-
     // Context.
-    if (t.start)
+    if (t.start && t.col > 0)
     {
-        const char *line_start = t.start - (t.col - 1);
-        const char *line_end = t.start;
-        while (*line_end && *line_end != '\n')
-        {
-            line_end++;
-        }
-        ptrdiff_t line_len = line_end - line_start;
-
-        fprintf(stderr, COLOR_BLUE "   |\n" COLOR_RESET);
-        fprintf(stderr, COLOR_BLUE "%-3d| " COLOR_RESET "%.*s\n", t.line, line_len, line_start);
-        fprintf(stderr, COLOR_BLUE "   | " COLOR_RESET);
-        for (int i = 0; i < t.col - 1; i++)
-        {
-            fprintf(stderr, " ");
-        }
-        fprintf(stderr, COLOR_RED "^ here" COLOR_RESET "\n");
-
-        // Suggestion.
+        diag_print_location(stderr, t);
+        diag_print_context(stderr, t, COLOR_RED);
         if (suggestion)
         {
-            fprintf(stderr, COLOR_BLUE "   |\n" COLOR_RESET);
             fprintf(stderr, COLOR_CYAN "   = help: " COLOR_RESET "%s\n", suggestion);
         }
+    }
+    else
+    {
+        diag_print_location(stderr, t);
     }
 
     {
@@ -709,42 +628,24 @@ void zerror_with_hints(Token t, const char *msg, const char *const *hints)
     // Header.
     fprintf(stderr, COLOR_RED "error: " COLOR_RESET COLOR_BOLD "%s" COLOR_RESET "\n", msg);
 
-    // Location.
-    fprintf(stderr, COLOR_BLUE "  --> " COLOR_RESET "%s:%d:%d\n",
-            (t.file ? t.file : (d_ctx.parser_ctx ? d_ctx.parser_ctx->current_filename : "unknown")),
-            t.line, t.col);
-
     // Context.
-    if (t.start)
+    if (t.start && t.col > 0)
     {
-        const char *line_start = t.start - (t.col - 1);
-        const char *line_end = t.start;
-        while (*line_end && *line_end != '\n')
-        {
-            line_end++;
-        }
-        ptrdiff_t line_len = line_end - line_start;
-
-        fprintf(stderr, COLOR_BLUE "   |\n" COLOR_RESET);
-        fprintf(stderr, COLOR_BLUE "%-3d| " COLOR_RESET "%.*s\n", t.line, line_len, line_start);
-        fprintf(stderr, COLOR_BLUE "   | " COLOR_RESET);
-        for (int i = 0; i < t.col - 1; i++)
-        {
-            fprintf(stderr, " ");
-        }
-        fprintf(stderr, COLOR_RED "^ here" COLOR_RESET "\n");
-
-        // Hints.
+        diag_print_location(stderr, t);
+        diag_print_context(stderr, t, COLOR_RED);
         if (hints)
         {
             const char *const *h = hints;
             while (*h)
             {
-                fprintf(stderr, COLOR_BLUE "   |\n" COLOR_RESET);
                 fprintf(stderr, COLOR_CYAN "   = help: " COLOR_RESET "%s\n", *h);
                 h++;
             }
         }
+    }
+    else
+    {
+        diag_print_location(stderr, t);
     }
 
     if (d_ctx.parser_ctx && d_ctx.parser_ctx->on_error)

@@ -267,7 +267,7 @@ void register_slice(ParserContext *ctx, const char *type)
     snprintf(legacy_name, sizeof(legacy_name), "Slice_%s", type);
     if (strcmp(slice_name, legacy_name) != 0)
     {
-        register_type_alias(ctx, legacy_name, slice_name, NULL, 0, NULL, (Token){0}, 0);
+        register_type_alias(ctx, legacy_name, slice_name, NULL, 0, NULL, TOKEN_UNKNOWN, 0);
     }
 }
 
@@ -392,7 +392,7 @@ void register_struct_def(ParserContext *ctx, const char *name, ASTNode *node)
         {
             if ((all->kind == SYM_STRUCT || all->kind == SYM_ENUM) && strcmp(all->name, name) == 0)
             {
-                zerror_at(node ? node->token : (Token){0}, "MISRA Rule 5.7");
+                zerror_at(node ? node->token : TOKEN_UNKNOWN, "MISRA Rule 5.7");
                 break;
             }
             all = all->next;

@@ -21,6 +21,9 @@ jobs:
         sudo apt-get update && sudo apt-get install -y clang-format
         find src -name '*.c' -o -name '*.h' | xargs clang-format --dry-run --Werror
 
+    - name: Codebase Conventions
+      run: make check-codebase
+
   lizard:
     name: Complexity Check (Lizard)
     runs-on: ubuntu-latest

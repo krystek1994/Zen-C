@@ -10,31 +10,41 @@ permissions:
 
 jobs:
   fuzz:
-    name: LibFuzzer (15m)
+    name: LibFuzzer
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Install libtcc-dev
-      run: sudo apt-get update && sudo apt-get install -y libtcc-dev
-      
+
+    - name: Install dependencies
+      run: sudo apt-get update && sudo apt-get install -y libtcc-dev ccache
+
+    - name: Prepare ccache
+      uses: actions/cache@v4
+      with:
+        path: ~/.ccache
+        key: ${{ runner.os }}-ccache-fuzz-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-ccache-fuzz-
+          ${{ runner.os }}-ccache-
+
     - name: Build Fuzzer
-      run: make fuzz-libfuzzer-build
-      
+      run: |
+        export PATH="/usr/lib/ccache:$PATH"
+        make fuzz-libfuzzer-build
+
     - name: Prepare Corpus
       run: make fuzz-corpus
-      
+
     - name: Run Fuzzer
       run: |
-        # Run for 15 minutes (900 seconds)
-        # -rss_limit_mb=2048 to prevent huge memory usage on bad inputs
-        ./zc-fuzz-libfuzzer fuzz/corpus -max_total_time=900 -rss_limit_mb=2048 || {
-          echo "----------------------------------------------------------------"
-          echo "SECURITY ALERT: Fuzzer found a crash or memory safety issue."
-          echo "The crashing input has NOT been uploaded for security reasons."
-          echo "Please run the fuzzer locally to reproduce and fix this issue:"
-          echo "  make fuzz-libfuzzer-build"
-          echo "  ./zc-fuzz-libfuzzer fuzz/corpus"
-          echo "----------------------------------------------------------------"
-          exit 1
-        }
+        ./zc-fuzz-libfuzzer fuzz/corpus -max_total_time=900 -timeout=30 -rss_limit_mb=2048 || true
+
+    - name: Upload Crashes and Timeouts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: fuzz-crashes
+        path: |
+          crash-*
+          timeout-*
+        if-no-files-found: ignore

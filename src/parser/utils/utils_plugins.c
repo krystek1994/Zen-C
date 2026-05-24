@@ -56,7 +56,7 @@ void register_plugin(ParserContext *ctx, const char *name, const char *alias)
 
     if (!plugin)
     {
-        zerror_at((Token){0}, "Could not load plugin '%s' (tried built-ins and dynamic loading)",
+        zerror_at(TOKEN_UNKNOWN, "Could not load plugin '%s' (tried built-ins and dynamic loading)",
                   name);
         if (ctx->config->mode_lsp)
         {
@@ -71,7 +71,7 @@ void register_plugin(ParserContext *ctx, const char *name, const char *alias)
             // Fuzzing or LSP — recover gracefully
             return;
         }
-        exit(1);
+        exit(1); // whitelisted: guarded by is_fault_tolerant above
     }
 
     ImportedPlugin *p = xmalloc(sizeof(ImportedPlugin));

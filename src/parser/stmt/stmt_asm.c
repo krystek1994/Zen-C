@@ -79,6 +79,11 @@ ASTNode *parse_asm(ParserContext *ctx, Lexer *l)
         {
             break;
         }
+        if (inner_t.type == TOK_EOF)
+        {
+            zpanic_at(inner_t, "Unexpected end of file in asm body");
+            break;
+        }
 
         if (inner_t.type == TOK_STRING)
         {
@@ -230,6 +235,11 @@ ASTNode *parse_asm(ParserContext *ctx, Lexer *l)
             {
                 break;
             }
+            if (inner_t.type == TOK_EOF)
+            {
+                zpanic_at(inner_t, "Unexpected end of file in asm outputs");
+                break;
+            }
             if (inner_t.type == TOK_COMMA)
             {
                 lexer_next(l);
@@ -289,6 +299,11 @@ ASTNode *parse_asm(ParserContext *ctx, Lexer *l)
             Token inner_t = lexer_peek(l);
             if (inner_t.type == TOK_COLON || inner_t.type == TOK_RBRACE)
             {
+                break;
+            }
+            if (inner_t.type == TOK_EOF)
+            {
+                zpanic_at(inner_t, "Unexpected end of file in asm inputs");
                 break;
             }
             if (inner_t.type == TOK_COMMA)

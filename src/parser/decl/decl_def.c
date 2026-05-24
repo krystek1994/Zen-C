@@ -25,6 +25,10 @@ ASTNode *parse_def(ParserContext *ctx, Lexer *l, int is_export)
         lexer_next(l);
         // Hybrid Parse
         type_obj = parse_type_formal(ctx, l);
+        if (!type_obj)
+        {
+            return NULL;
+        }
         type_str = type_to_string(type_obj);
     }
 
@@ -130,6 +134,10 @@ ASTNode *parse_type_alias(ParserContext *ctx, Lexer *l, int is_opaque, int is_ex
     lexer_next(l); // consume '='
 
     Type *t = parse_type_formal(ctx, l);
+    if (!t)
+    {
+        return NULL;
+    }
     char *o = type_to_string(t);
 
     if (lexer_peek(l).type == TOK_SEMICOLON)

@@ -124,6 +124,10 @@ ASTNode *parse_lambda(ParserContext *ctx, Lexer *l)
         lexer_next(l);
 
         Type *typef = parse_type_formal(ctx, l);
+        if (!typef)
+        {
+            return NULL;
+        }
         t->args[t->arg_count] = typef;
         param_types[num_params] = type_to_string(typef);
         num_params++;
@@ -137,6 +141,10 @@ ASTNode *parse_lambda(ParserContext *ctx, Lexer *l)
         lexer_next(l);
 
         t->inner = parse_type_formal(ctx, l);
+        if (!t->inner)
+        {
+            return NULL;
+        }
         return_type = type_to_string(t->inner);
     }
 
@@ -353,7 +361,7 @@ static int is_valid_float_suffix(const char *s)
 }
 
 // Parse integer literal (decimal, hex, binary, octal)
-ASTNode *parse_int_literal(Token t)
+ASTNode *parse_int_literal(ParserContext *ctx, Token t)
 {
     ASTNode *node = ast_create(NODE_EXPR_LITERAL);
     node->token = t;
@@ -407,7 +415,7 @@ ASTNode *parse_int_literal(Token t)
             zpanic_at(t, "%s", err);
         }
 
-        if (g_compiler.config.misra_mode && strchr(endptr, 'l'))
+        if (ctx->config->misra_mode && strchr(endptr, 'l'))
         {
             zerror_at(t, "MISRA Rule 7.3");
         }
@@ -476,7 +484,7 @@ ASTNode *parse_int_literal(Token t)
 
         // Rule 7.2: If it's hex/bin/octal and semantically unsigned (high bit set), it needs 'u'
         // This part is for when we ALREADY have a suffix (like 'L'), but it lacks 'U'.
-        if (g_compiler.config.misra_mode && !(strchr(endptr, 'u') || strchr(endptr, 'U')))
+        if (ctx->config->misra_mode && !(strchr(endptr, 'u') || strchr(endptr, 'U')))
         {
             int is_non_decimal = (t.len > 2 && s[0] == '0' &&
                                   (s[1] == 'x' || s[1] == 'X' || s[1] == 'b' || s[1] == 'B' ||
@@ -495,7 +503,7 @@ ASTNode *parse_int_literal(Token t)
             node->type_info->kind = TYPE_I64;
         }
 
-        if (g_compiler.config.misra_mode)
+        if (ctx->config->misra_mode)
         {
             int is_non_decimal = (t.len > 2 && s[0] == '0' &&
                                   (s[1] == 'x' || s[1] == 'X' || s[1] == 'b' || s[1] == 'B' ||
@@ -589,24 +597,33 @@ ASTNode *parse_string_literal(ParserContext *ctx, Token t)
         node->resolved_type = xstrdup("string");
 
         // Rule 4.1 check also for interpolated strings (though rarer)
-        if (g_compiler.config.misra_mode)
+        if (ctx->config->misra_mode)
         {
             for (int i = 0; i < str_len; i++)
             {
                 if (content[i] == '\\' && i + 1 < str_len)
                 {
+
+                    // Hex
                     if (content[i + 1] == 'x')
                     {
-                        // Hex escape. Check if it's followed by MORE than needed?
-                        // Actually C hex escapes consume ANY number of hex digits.
-                        // So if we have \x41B, and B is hex, it's ambiguous.
-                        if (i + 3 < str_len && isxdigit(content[i + 2]) && isxdigit(content[i + 3]))
+                        if (i + 3 >= str_len)
                         {
-                            // \xHH... We need to check if it's followed by another hex digit.
-                            // But Zen's escape_c_string might only handle \xHH.
-                            // However, we must follow MISRA.
+                            warn_misra_violation(t, "MISRA Rule 4.1: Octal/hexadecimal escape "
+                                                    "sequences shall not be used");
                         }
+                        i += 2;
+                        continue;
                     }
+
+                    // Octal (starts with \0)
+                    if (content[i + 1] == '0')
+                    {
+                        warn_misra_violation(
+                            t,
+                            "MISRA Rule 4.1: Octal/hexadecimal escape sequences shall not be used");
+                    }
+                    i++;
                 }
             }
         }
@@ -615,7 +632,10 @@ ASTNode *parse_string_literal(ParserContext *ctx, Token t)
         return node;
     }
 
-    if (g_compiler.config.misra_mode)
+    // Plain string literal (no interpolation)
+    content = token_get_string_content(t);
+
+    if (ctx->config->misra_mode)
     {
         for (int i = 0; i < str_len; i++)
         {
@@ -816,6 +836,10 @@ ASTNode *parse_size_or_typeof(ParserContext *ctx, Lexer *l, Token tk, int is_typ
     TupleType *old_tuples = ctx->used_tuples;
 
     Type *ty = parse_type_formal(ctx, l);
+    if (!ty)
+    {
+        return NULL;
+    }
 
     int is_actually_var = 0;
     if (ty->kind != TYPE_UNKNOWN)
@@ -923,6 +947,10 @@ ASTNode *parse_intrinsic(ParserContext *ctx, Lexer *l)
     }
 
     Type *target = parse_type_formal(ctx, l);
+    if (!target)
+    {
+        return NULL;
+    }
 
     Token rparen = lexer_next(l);
     if (rparen.type != TOK_RPAREN)

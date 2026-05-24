@@ -50,6 +50,11 @@ Type *parse_type_base(ParserContext *ctx, Lexer *l)
             if (alias_node->is_opaque)
             {
                 Type *underlying = parse_type_formal(ctx, &tmp);
+                if (!underlying)
+                {
+                    RECURSION_EXIT(ctx);
+                    return NULL;
+                }
                 Type *wrapper = type_new(TYPE_ALIAS);
                 wrapper->name = xstrdup(alias_node->alias);
                 wrapper->inner = underlying;
@@ -61,6 +66,11 @@ Type *parse_type_base(ParserContext *ctx, Lexer *l)
             }
 
             Type *t_res = parse_type_formal(ctx, &tmp);
+            if (!t_res)
+            {
+                RECURSION_EXIT(ctx);
+                return NULL;
+            }
             RECURSION_EXIT(ctx);
             return t_res;
         }
@@ -294,6 +304,11 @@ Type *parse_type_base(ParserContext *ctx, Lexer *l)
         {
             lexer_next(l); // eat <
             Type *first_arg = parse_type_formal(ctx, l);
+            if (!first_arg)
+            {
+                RECURSION_EXIT(ctx);
+                return NULL;
+            }
             char *first_arg_str = type_to_string(first_arg);
 
             // Check for multi-arg: <K, V>
@@ -309,6 +324,11 @@ Type *parse_type_base(ParserContext *ctx, Lexer *l)
                 {
                     lexer_next(l); // eat ,
                     Type *arg = parse_type_formal(ctx, l);
+                    if (!arg)
+                    {
+                        RECURSION_EXIT(ctx);
+                        return NULL;
+                    }
                     char *arg_str = type_to_string(arg);
                     args = realloc(args, sizeof(char *) * (arg_count + 1));
                     args[arg_count++] = xstrdup(arg_str);
@@ -423,6 +443,11 @@ Type *parse_type_base(ParserContext *ctx, Lexer *l)
     {
         lexer_next(l);
         Type *inner = parse_type_formal(ctx, l);
+        if (!inner)
+        {
+            RECURSION_EXIT(ctx);
+            return NULL;
+        }
 
         // Check for fixed-size array [T; N]
         if (lexer_peek(l).type == TOK_SEMICOLON)
@@ -482,6 +507,10 @@ Type *parse_type_base(ParserContext *ctx, Lexer *l)
         while (1)
         {
             Type *sub = parse_type_formal(ctx, l);
+            if (!sub)
+            {
+                break;
+            }
             char *s = type_to_string(sub);
             strcat(sig, s);
             if (type_count < 256)

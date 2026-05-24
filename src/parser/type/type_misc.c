@@ -15,6 +15,10 @@
 char *parse_type(ParserContext *ctx, Lexer *l)
 {
     Type *t = parse_type_formal(ctx, l);
+    if (!t)
+    {
+        return NULL;
+    }
 
     return type_to_string(t);
 }
@@ -40,6 +44,10 @@ char *parse_array_literal(ParserContext *ctx, Lexer *l, const char *st)
         {
             lexer_next(l);
             continue;
+        }
+        if (t.type == TOK_EOF)
+        {
+            break;
         }
 
         const char *s = l->src + l->pos;
@@ -150,6 +158,10 @@ char *parse_tuple_literal(ParserContext *ctx, Lexer *l, const char *tn)
         {
             lexer_next(l);
             continue;
+        }
+        if (t.type == TOK_EOF)
+        {
+            break;
         }
 
         const char *s = l->src + l->pos;

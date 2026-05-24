@@ -106,6 +106,11 @@ ASTNode *parse_var_decl(ParserContext *ctx, Lexer *l, int is_export)
             count++;
 
             Token next = lexer_next(l);
+            if (next.type == TOK_EOF)
+            {
+                zpanic_at(next, "Unexpected end of file in destructuring pattern");
+                break;
+            }
             if (next.type == (is_struct ? TOK_RBRACE : TOK_RPAREN))
             {
                 break;
@@ -176,6 +181,11 @@ ASTNode *parse_var_decl(ParserContext *ctx, Lexer *l, int is_export)
             count++;
 
             Token next = lexer_next(l);
+            if (next.type == TOK_EOF)
+            {
+                zpanic_at(next, "Unexpected end of file in struct destructuring");
+                break;
+            }
             if (next.type == TOK_RBRACE)
             {
                 break;
@@ -272,6 +282,10 @@ ASTNode *parse_var_decl(ParserContext *ctx, Lexer *l, int is_export)
         lexer_next(l);
         // Hybrid Parse: Get Object AND String
         type_obj = parse_type_formal(ctx, l);
+        if (!type_obj)
+        {
+            return NULL;
+        }
         type = type_to_string(type_obj);
     }
 
@@ -370,6 +384,10 @@ ASTNode *parse_var_decl(ParserContext *ctx, Lexer *l, int is_export)
                 {
                     lexer_next(l);
                     ntype_obj = parse_type_formal(ctx, l);
+                    if (!ntype_obj)
+                    {
+                        return NULL;
+                    }
                     ntype = type_to_string(ntype_obj);
                 }
                 ASTNode *ninit = NULL;
@@ -703,6 +721,10 @@ ASTNode *parse_var_decl(ParserContext *ctx, Lexer *l, int is_export)
             {
                 lexer_next(l);
                 next_type_obj = parse_type_formal(ctx, l);
+                if (!next_type_obj)
+                {
+                    return NULL;
+                }
                 next_type = type_to_string(next_type_obj);
             }
 

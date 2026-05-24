@@ -88,6 +88,9 @@ typedef struct
     const char *file;  ///< Name of file with source code.
 } Token;
 
+/** Sentinel for diagnostics with no source location. */
+#define TOKEN_UNKNOWN ((Token){0})
+
 /**
  * @brief Lexer state.
  */

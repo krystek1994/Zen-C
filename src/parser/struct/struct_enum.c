@@ -54,6 +54,11 @@ ASTNode *parse_enum(ParserContext *ctx, Lexer *l, const char *link_name, int is_
             lexer_next(l);
             continue;
         }
+        if (t.type == TOK_EOF)
+        {
+            zpanic_at(t, "Unexpected end of file in enum body");
+            break;
+        }
 
         if (t.type == TOK_IDENT)
         {
