@@ -803,11 +803,11 @@ void zwarn_diag(DiagnosticID id, Token t, const char *msg, const char *hint)
             snprintf(final_hint, sizeof(final_hint),
                      "If this is a C function, it might need to be whitelisted in 'zenc.json'");
         }
-        zwarn_with_suggestion_diag(id, t, msg, final_hint);
+        zwarn_with_suggestion_diag((int)(id), t, msg, final_hint);
     }
     else
     {
-        zwarn_with_suggestion_diag(id, t, msg, hint);
+        zwarn_with_suggestion_diag((int)(id), t, msg, hint);
     }
 }
 

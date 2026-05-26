@@ -2019,10 +2019,10 @@ static ASTNode *parse_expr_prec_impl(ParserContext *ctx, Lexer *l, Precedence mi
         int next_prec = (int)(prec + 1);
         if (op.type == TOK_OP && (is_token(op, "**") || is_token(op, "**=")))
         {
-            next_prec = prec;
+            next_prec = (int)(prec);
         }
 
-        ASTNode *rhs = parse_expr_prec(ctx, l, next_prec);
+        ASTNode *rhs = parse_expr_prec(ctx, l, (Precedence)(next_prec));
         if (!rhs)
         {
             // parse_expr_prec can return NULL on malformed input. Without the

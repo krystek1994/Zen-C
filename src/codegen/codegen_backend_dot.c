@@ -198,7 +198,7 @@ static int dot_emit_node(ParserContext *ctx, ASTNode *node)
     }
 
     int id = node_id++;
-    emitter_printf(&ctx->cg.emitter, "  %d [label=\"%s", id, dot_type_name(node->type));
+    emitter_printf(&ctx->cg.emitter, "  %d [label=\"%s", id, dot_type_name((int)(node->type)));
 
     // Name
     const char *name = NULL;

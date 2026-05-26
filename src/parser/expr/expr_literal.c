@@ -794,19 +794,19 @@ ASTNode *parse_char_literal(Token t)
         }
         else if ((first & 0xE0) == 0xC0)
         {
-            val = ((first & 0x1F) << 6) | ((unsigned char)s[1] & 0x3F);
+            val = (uint32_t)(((first & 0x1F) << 6) | ((unsigned char)s[1] & 0x3F));
             node->type_info = type_new(TYPE_RUNE);
         }
         else if ((first & 0xF0) == 0xE0)
         {
-            val = ((first & 0x0F) << 12) | (((unsigned char)s[1] & 0x3F) << 6) |
-                  ((unsigned char)s[2] & 0x3F);
+            val = (uint32_t)(((first & 0x0F) << 12) | (((unsigned char)s[1] & 0x3F) << 6) |
+                             ((unsigned char)s[2] & 0x3F));
             node->type_info = type_new(TYPE_RUNE);
         }
         else if ((first & 0xF8) == 0xF0)
         {
-            val = ((first & 0x07) << 18) | (((unsigned char)s[1] & 0x3F) << 12) |
-                  (((unsigned char)s[2] & 0x3F) << 6) | ((unsigned char)s[3] & 0x3F);
+            val = (uint32_t)(((first & 0x07) << 18) | (((unsigned char)s[1] & 0x3F) << 12) |
+                             (((unsigned char)s[2] & 0x3F) << 6) | ((unsigned char)s[3] & 0x3F));
             node->type_info = type_new(TYPE_RUNE);
         }
         else

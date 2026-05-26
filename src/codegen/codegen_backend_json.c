@@ -297,7 +297,7 @@ static void json_emit_node(ParserContext *ctx, ASTNode *node, int pretty, int de
     {
         json_indent(ctx, depth);
     }
-    emitter_printf(&ctx->cg.emitter, "{\"node\":\"%s\"", node_type_name(node->type));
+    emitter_printf(&ctx->cg.emitter, "{\"node\":\"%s\"", node_type_name((int)(node->type)));
 
     // Name for named nodes
     switch (node->type)

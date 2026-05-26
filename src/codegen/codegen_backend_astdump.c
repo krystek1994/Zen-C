@@ -123,7 +123,7 @@ static void dump_node(ParserContext *ctx, ASTNode *node, int is_last, const char
 static void emit_label(ParserContext *ctx, ASTNode *node)
 {
     // Title: short type name
-    emitter_printf(&ctx->cg.emitter, " %s", node_type_name(node->type));
+    emitter_printf(&ctx->cg.emitter, " %s", node_type_name((int)(node->type)));
 
     // Name or operator for relevant node types
     switch (node->type)
