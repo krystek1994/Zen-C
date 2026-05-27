@@ -178,7 +178,7 @@ static void emit_pattern_condition(ParserContext *ctx, const char *pattern, int 
 }
 
 // Helper
-bool is_int_type(TypeKind k)
+ZEN_CONST bool is_int_type(TypeKind k)
 {
     static const bool is_int[] = {
         [TYPE_CHAR] = true,    [TYPE_I8] = true,         [TYPE_U8] = true,

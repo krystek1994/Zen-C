@@ -8,6 +8,7 @@
 #define PLUGIN_MANAGER_H
 
 #include "../../plugins/zprep_plugin.h"
+#include "../compat/c23_compat.h"
 
 typedef struct CompilerConfig CompilerConfig;
 
@@ -60,6 +61,6 @@ int zptr_unload_plugin(const char *name);
  * @param name The name of the plugin.
  * @return ZPlugin* Pointer to the plugin or NULL if not found.
  */
-ZPlugin *zptr_get_static_plugin(const char *name);
+ZEN_CONST ZPlugin *zptr_get_static_plugin(const char *name);
 
 #endif

@@ -2,6 +2,7 @@
 #include "plugin_manager.h"
 
 #include "../compiler.h"
+#include "../compat/c23_compat.h"
 #include "../utils/colors.h"
 #include "../constants.h"
 #include "../diagnostics/diagnostics.h"
@@ -294,7 +295,7 @@ int zptr_unload_plugin(const char *name)
     (void)name;
     return 0;
 }
-ZPlugin *zptr_get_static_plugin(const char *name)
+ZEN_CONST ZPlugin *zptr_get_static_plugin(const char *name)
 {
     (void)name;
     return NULL;

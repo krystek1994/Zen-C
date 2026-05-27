@@ -253,7 +253,12 @@ ASTNode *parse_embed(ParserContext *ctx, Lexer *l)
     }
     rewind(f);
     unsigned char *b = xmalloc((size_t)(len));
-    fread(b, 1, (size_t)(len), f);
+    if (fread(b, 1, (size_t)(len), f) != (size_t)(len))
+    {
+        zfree(b);
+        fclose(f);
+        return NULL;
+    }
     fclose(f);
 
     size_t oc = (size_t)(len) * 6 + 256;

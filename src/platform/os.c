@@ -90,6 +90,9 @@ double z_get_time(void)
 
 #define MAX_PATH_SIZE 1024
 
+#if !ZC_OS_WINDOWS
+ZEN_CONST
+#endif
 const char *z_get_temp_dir(void)
 {
 #if ZC_OS_WINDOWS
@@ -249,7 +252,7 @@ void z_get_absolute_path(const char *path, char *buffer, size_t size)
 #endif
 }
 
-int z_is_zip_path(const char *path)
+ZEN_CONST int z_is_zip_path(const char *path)
 {
 #ifdef __COSMOPOLITAN__
     return path && strncmp(path, "/zip", 4) == 0;
@@ -302,7 +305,7 @@ int z_match_os(const char *os_name)
     return 0;
 }
 
-const char *z_get_system_name(void)
+ZEN_CONST const char *z_get_system_name(void)
 {
 #if ZC_OS_WINDOWS
     return "windows";

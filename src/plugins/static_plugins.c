@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include "plugin_manager.h"
+#include "../compat/c23_compat.h"
 #include <string.h>
 #ifdef ZC_STATIC_PLUGINS
 extern ZPlugin *z_plugin_init_befunge(void);
@@ -32,7 +33,7 @@ ZPlugin *zptr_get_static_plugin(const char *name)
     return NULL;
 }
 #else
-ZPlugin *zptr_get_static_plugin(const char *name)
+ZEN_CONST ZPlugin *zptr_get_static_plugin(const char *name)
 {
     (void)name;
     return NULL;

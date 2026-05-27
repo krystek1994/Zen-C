@@ -13,6 +13,7 @@
 #include "codegen_backend.h"
 #include <stdio.h>
 #include "../utils/emitter.h"
+#include "../compat/c23_compat.h"
 
 typedef struct ParserContext ParserContext;
 
@@ -121,5 +122,5 @@ enum
 void emit_pending_closure_frees(ParserContext *ctx);
 
 #endif
-bool is_int_type(TypeKind k);
+ZEN_CONST bool is_int_type(TypeKind k);
 int should_emit_source_mapping(ASTNode *node);

@@ -80,6 +80,17 @@
 #define ZEN_RETURNS_NONNULL
 #endif
 
+// const / pure — GCC/Clang attributes for function purity analysis
+// ZEN_CONST:  result depends only on arguments (no global reads)
+// ZEN_PURE:   result depends on arguments + readable global memory
+#if defined(__GNUC__) || defined(__clang__)
+#define ZEN_CONST __attribute__((const))
+#define ZEN_PURE __attribute__((pure))
+#else
+#define ZEN_CONST
+#define ZEN_PURE
+#endif
+
 // unreachable() — C23 standard macro
 #if ZEN_C23
 // Use the standard macro (defined in <stddef.h> in C23)

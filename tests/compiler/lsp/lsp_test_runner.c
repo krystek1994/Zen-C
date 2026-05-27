@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <fcntl.h>
 #include "../../src/lsp/cJSON.h"
+#include "../../src/platform/compiler.h"
 
 #define MAX_BUFFER (2 * 1024 * 1024)
 
@@ -13,7 +14,7 @@ int pipe_in[2];
 int pipe_out[2];
 pid_t child_pid;
 
-static __attribute__((noreturn)) void fail(const char *msg)
+static ZC_NORETURN void fail(const char *msg)
 {
     fprintf(stderr, "TEST FAIL: %s\n", msg);
     exit(1);
