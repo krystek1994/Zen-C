@@ -13,13 +13,13 @@ int pipe_in[2];
 int pipe_out[2];
 pid_t child_pid;
 
-void fail(const char *msg)
+static __attribute__((noreturn)) void fail(const char *msg)
 {
     fprintf(stderr, "TEST FAIL: %s\n", msg);
     exit(1);
 }
 
-void start_lsp_server()
+static void start_lsp_server()
 {
     if (pipe(pipe_in) < 0 || pipe(pipe_out) < 0)
     {
@@ -49,11 +49,11 @@ void start_lsp_server()
     }
 }
 
-void send_request(const char *json)
+static void send_request(const char *json)
 {
     char header[128];
-    int len = strlen(json);
-    sprintf(header, "Content-Length: %d\r\n\r\n", len);
+    size_t len = strlen(json);
+    sprintf(header, "Content-Length: %d\r\n\r\n", (int)len);
     write(pipe_in[1], header, strlen(header));
     write(pipe_in[1], json, len);
 }
@@ -61,7 +61,7 @@ void send_request(const char *json)
 char global_buf[MAX_BUFFER];
 int global_len = 0;
 
-char *read_message()
+static char *read_message()
 {
     while (1)
     {
@@ -69,7 +69,7 @@ char *read_message()
         char *body_start = strstr(global_buf, "\r\n\r\n");
         if (body_start)
         {
-            int header_len = body_start - global_buf + 4;
+            int header_len = (int)(body_start - global_buf) + 4;
             int content_len = 0;
 
             // Parse Content-Length
@@ -85,13 +85,13 @@ char *read_message()
                 if (global_len >= total_msg_len)
                 {
                     // We have a full message!
-                    char *msg_body = malloc(content_len + 1);
-                    memcpy(msg_body, body_start + 4, content_len);
+                    char *msg_body = malloc((size_t)content_len + 1);
+                    memcpy(msg_body, body_start + 4, (size_t)content_len);
                     msg_body[content_len] = 0;
 
                     // Shift remaining data to start
                     int remaining = global_len - total_msg_len;
-                    memmove(global_buf, global_buf + total_msg_len, remaining);
+                    memmove(global_buf, global_buf + total_msg_len, (size_t)remaining);
                     global_len = remaining;
                     global_buf[global_len] = 0;
 
@@ -106,7 +106,7 @@ char *read_message()
             fail("Buffer overflow in read_message");
         }
 
-        int n = read(pipe_out[0], global_buf + global_len, MAX_BUFFER - 1 - global_len);
+        int n = (int)read(pipe_out[0], global_buf + global_len, (size_t)(MAX_BUFFER - 1 - global_len));
         if (n <= 0)
         {
             // EOF or error, but maybe we have a message pending verification?
@@ -124,7 +124,7 @@ char *read_message()
     }
 }
 
-char *wait_for_response(int id)
+static char *wait_for_response(int id)
 {
     // Loop until we get a response with the matching ID
     // or until timeout (implicit in blocking read, could add explicit timeout)
@@ -181,7 +181,7 @@ char *wait_for_response(int id)
     return NULL;
 }
 
-void test_initialize()
+static void test_initialize()
 {
     printf("Running test_initialize...\n");
     send_request("{\"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"initialize\", \"params\": "
@@ -201,7 +201,7 @@ void test_initialize()
     free(resp);
 }
 
-void test_hover()
+static void test_hover()
 {
     printf("Running test_hover...\n");
     int fd = open("/tmp/test_lsp.zc", O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -243,7 +243,7 @@ void test_hover()
     free(resp);
 }
 
-void test_definition_partial_code()
+static void test_definition_partial_code()
 {
     printf("Running test_definition_partial_code...\n");
     // Incomplete call: "foo(" without closing paren or args.
@@ -277,7 +277,7 @@ void test_definition_partial_code()
     free(resp);
 }
 
-void test_references_partial_code()
+static void test_references_partial_code()
 {
     printf("Running test_references_partial_code...\n");
     // Same partial code as above — references on incomplete call
@@ -296,7 +296,7 @@ void test_references_partial_code()
     free(resp);
 }
 
-void test_request_unopened_file()
+static void test_request_unopened_file()
 {
     printf("Running test_request_unopened_file...\n");
     // Hover on a URI that was never didOpen'd — tests null-pointer guards.
@@ -323,7 +323,7 @@ void test_request_unopened_file()
     free(resp);
 }
 
-void test_empty_source()
+static void test_empty_source()
 {
     printf("Running test_empty_source...\n");
     int fd = open("/tmp/test_empty.zc", O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -372,7 +372,7 @@ void test_empty_source()
     }
 }
 
-void test_did_change()
+static void test_did_change()
 {
     printf("Running test_did_change...\n");
     // Open a file, then send didChange with modified content
@@ -430,7 +430,7 @@ void test_did_change()
     free(resp2);
 }
 
-void test_code_action()
+static void test_code_action()
 {
     printf("Running test_code_action...\n");
     // Open a file with 'var' to trigger deprecation diagnostics
@@ -468,7 +468,7 @@ void test_code_action()
     free(resp);
 }
 
-void test_shutdown()
+static void test_shutdown()
 {
     printf("Running test_shutdown...\n");
     send_request("{\"jsonrpc\": \"2.0\", \"id\": 3, \"method\": \"shutdown\", \"params\": {}}");
@@ -484,7 +484,7 @@ void test_shutdown()
     }
 }
 
-void test_completion()
+static void test_completion()
 {
     printf("Running test_completion...\n");
     int fd = open("/tmp/test_compl.zc", O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -536,7 +536,7 @@ void test_completion()
     free(resp);
 }
 
-void test_struct_completion()
+static void test_struct_completion()
 {
     printf("Running test_struct_completion...\n");
     int fd = open("/tmp/test_struct.zc", O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -582,7 +582,7 @@ void test_struct_completion()
     free(resp);
 }
 
-void test_diagnostics()
+static void test_diagnostics()
 {
     printf("Running test_diagnostics...\n");
     // Create a file with a syntax error
@@ -630,7 +630,7 @@ void test_diagnostics()
     }
 }
 
-void test_semantic_tokens()
+static void test_semantic_tokens()
 {
     printf("Running test_semantic_tokens...\n");
     int fd = open("/tmp/test_semantic.zc", O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -676,7 +676,7 @@ void test_semantic_tokens()
     free(resp);
 }
 
-void test_definition()
+static void test_definition()
 {
     printf("Running test_definition...\n");
     int fd = open("/tmp/test_def.zc", O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -722,7 +722,7 @@ void test_definition()
     free(resp);
 }
 
-void test_references()
+static void test_references()
 {
     printf("Running test_references...\n");
     // Reuse test_def.zc
@@ -754,7 +754,7 @@ void test_references()
     free(resp);
 }
 
-void test_rename()
+static void test_rename()
 {
     printf("Running test_rename...\n");
     // Reuse test_def.zc
@@ -783,7 +783,7 @@ void test_rename()
     free(resp);
 }
 
-void test_outline()
+static void test_outline()
 {
     printf("Running test_outline...\n");
     int fd = open("/tmp/test_outline.zc", O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -832,7 +832,7 @@ void test_outline()
     free(resp);
 }
 
-void test_formatting()
+static void test_formatting()
 {
     printf("Running test_formatting...\n");
     int fd = open("/tmp/test_format.zc", O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -867,7 +867,7 @@ void test_formatting()
     free(resp);
 }
 
-void test_signature_help()
+static void test_signature_help()
 {
     printf("Running test_signature_help...\n");
     send_request("{\"jsonrpc\": \"2.0\", \"id\": 96, \"method\": \"textDocument/signatureHelp\", "
