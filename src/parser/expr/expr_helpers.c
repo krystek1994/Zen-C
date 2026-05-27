@@ -120,8 +120,6 @@ int check_opaque_alias_compat(ParserContext *ctx, Type *a, Type *b)
 #include "analysis/move_check.h"
 #include "utils/utils.h"
 
-void check_move_usage(ParserContext *ctx, ASTNode *node, Token t);
-
 ASTNode *find_function_definition(ParserContext *ctx, const char *name)
 {
     StructRef *curr = ctx->parsed_funcs_list;
@@ -417,14 +415,6 @@ void validate_named_arguments(Token call_token, const char *func_name, char **ar
 }
 
 // Helper to check if a type is a struct type
-ZEN_MAYBE_UNUSED static int is_struct_type(ParserContext *ctx, const char *type_name)
-{
-    if (!type_name)
-    {
-        return 0;
-    }
-    return find_struct_def(ctx, type_name) != NULL;
-}
 
 void check_move_usage(ParserContext *ctx, ASTNode *node, Token t)
 {
@@ -512,7 +502,7 @@ char *infer_printf_format(ParserContext *ctx, ASTNode **args, int ac)
     return fmt;
 }
 
-ZEN_MAYBE_UNUSED void check_format_string(ASTNode *call, Token t)
+void check_format_string(ASTNode *call, Token t)
 {
     if (call->type != NODE_EXPR_CALL)
     {

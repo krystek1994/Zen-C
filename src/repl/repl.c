@@ -6,6 +6,7 @@
 
 #include "repl_state.h"
 #include "repl.h"
+#include "repl_jit.h"
 #include <ctype.h>
 
 static int repl_process_line(ReplState *state, char *line_buf, int *brace_depth, int *paren_depth,

@@ -39,7 +39,6 @@ void misra_check_void_ptr_cast(ParserContext *ctx, struct Type *target, struct T
                                Token token);
 void misra_check_cast(ParserContext *ctx, struct Type *target, struct Type *source, Token token,
                       bool is_composite);
-void misra_check_null_pointer_constant(ParserContext *ctx, struct ASTNode *node, Token token);
 void misra_check_binary_op_essential_types(ParserContext *ctx, struct ASTNode *left,
                                            struct ASTNode *right, Token token);
 void misra_check_unsigned_wrap(ParserContext *ctx, const char *op, long long left, long long right,
@@ -64,7 +63,6 @@ void misra_check_double_initialization(ParserContext *ctx, const char *field_nam
 void misra_check_recursion(ParserContext *ctx, Token token);
 void misra_check_function_return_usage(ParserContext *ctx, struct ASTNode *node);
 void misra_check_array_param_size(ParserContext *ctx, int expected, int actual, Token token);
-void misra_check_null_pointer_constant(ParserContext *ctx, struct ASTNode *node, Token token);
 void misra_check_external_array_size(ParserContext *ctx, Type *t, Token token, int is_static,
                                      int is_local);
 void misra_check_param_modified(struct ASTNode *current_func, struct ASTNode *left, Token token);
@@ -115,5 +113,6 @@ void misra_check_string_compare(ParserContext *ctx, struct Type *left, struct Ty
 void misra_check_evaluation_order(ParserContext *ctx, struct ASTNode *expr);
 void misra_check_error_tested(ParserContext *ctx, struct ASTNode *stmt);
 void misra_check_typographic_ambiguity(ParserContext *ctx, const char *new_name, Token loc);
+void misra_check_null_pointer_constant(ParserContext *ctx, struct ASTNode *node, Token token);
 
 #endif // PLATFORM_MISRA_H

@@ -777,7 +777,7 @@ ASTNode *parse_char_literal(Token t)
                 return node;
             }
         }
-        /* fallthrough */
+        break;
         default:
             val = (unsigned char)*s;
             break;

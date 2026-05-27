@@ -15,10 +15,8 @@ static void scan_dir(const char *dir_path);
 void lsp_default_on_error(void *data, Token t, const char *msg);
 
 // Initialize the project with a root directory
-void lsp_project_init(const char *root_path);
 
 // Perform full project indexing
-void lsp_project_index_workspace(void);
 
 void lsp_project_init(const char *root_path)
 {
@@ -50,7 +48,6 @@ void lsp_project_init(const char *root_path)
 
     // Set a default error handler that just logs to stderr (or ignores)
     // to prevent exit(1) during initial scan.
-    void lsp_default_on_error(void *data, Token t, const char *msg);
     g_project->ctx->on_error = lsp_default_on_error;
 
     CompilerConfig *cfg = &g_project->ctx->compiler->config;
@@ -248,7 +245,6 @@ void lsp_project_update_file(const char *uri, const char *src)
     // Initialize built-ins if it's the first time
     if (!g_project->ctx->global_scope)
     {
-        void register_builtins(ParserContext * ctx);
         register_builtins(g_project->ctx);
     }
 

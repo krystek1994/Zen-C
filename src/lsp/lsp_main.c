@@ -35,7 +35,6 @@ int lsp_main(int argc, char **argv)
 
     // Initialize root path from executable to find std/
     char self_path[MAX_PATH_LEN];
-    void z_get_executable_path(char *buf, size_t size);
     z_get_executable_path(self_path, sizeof(self_path));
     if (self_path[0])
     {

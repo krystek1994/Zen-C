@@ -13,19 +13,6 @@
 
 int is_unmangle_primitive(const char *base);
 
-ZEN_MAYBE_UNUSED static ASTNode *copy_fields(ASTNode *fields)
-{
-    if (!fields)
-    {
-        return NULL;
-    }
-    ASTNode *n = ast_create(NODE_FIELD);
-    n->field.name = xstrdup(fields->field.name);
-    n->field.type = xstrdup(fields->field.type);
-    n->next = copy_fields(fields->next);
-    return n;
-}
-
 static char *replace_in_string(const char *src, const char *old_w, const char *new_w)
 {
     if (!src || !old_w || !new_w)

@@ -24,14 +24,7 @@
 #include <sys/wait.h>
 #endif
 
-// Forward declarations for functions defined in other modules
-extern char *load_file(const char *fn, const char *relative_to);
-extern void init_builtins(void);
-extern void load_all_configs(CompilerConfig *cfg);
-extern void scan_build_directives(ParserContext *ctx, const char *src);
-extern void propagate_vector_inner_types(ParserContext *ctx);
-extern void propagate_drop_traits(ParserContext *ctx);
-extern int validate_types(ParserContext *ctx);
+// Forward declarations (most are in headers — only keep what's not in headers)
 
 int driver_run(ZenCompiler *compiler)
 {

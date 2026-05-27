@@ -415,12 +415,12 @@ static void _zpool_grow(zpool *p)
 
     for (size_t i = 0; i < p->count_per_block - 1; i++)
     {
-        zpool_node *node = (zpool_node *)(block + (i * p->item_size));
-        node->next = (zpool_node *)(block + ((i + 1) * p->item_size));
+        zpool_node *node = (zpool_node *)(void *)(block + (i * p->item_size));
+        node->next = (zpool_node *)(void *)(block + ((i + 1) * p->item_size));
     }
-    zpool_node *last = (zpool_node *)(block + ((p->count_per_block - 1) * p->item_size));
+    zpool_node *last = (zpool_node *)(void *)(block + ((p->count_per_block - 1) * p->item_size));
     last->next = p->head;
-    p->head = (zpool_node *)block;
+    p->head = (zpool_node *)(void *)block;
 }
 
 ZALLOC_API void *zpool_alloc(zpool *p)

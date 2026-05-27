@@ -20,7 +20,9 @@ set CFLAGS=-std=%C_STD% -Wall -Wextra -Wshadow -Wformat=2 -Wmissing-prototypes ^
  -Wmissing-field-initializers -Wsign-compare -Wtype-limits -Wuninitialized ^
  -Wdouble-promotion -Wtautological-compare -Wshift-negative-value ^
  -Wdangling-else -Wreturn-local-addr -Wconversion -Wno-sign-conversion -Wno-float-conversion ^
- -Wduplicated-cond -Wlogical-op -g ^
+ -Wswitch-default -Wvla -Wimplicit-fallthrough -Wredundant-decls -Wcast-align ^
+ -Wpacked -Wdisabled-optimization -Wduplicated-cond -Wlogical-op -Wformat-signedness ^
+ -g ^
  -I./src -I./src/ast -I./src/parser -I./src/codegen -I./plugins -I./src/zen ^
  -I./src/utils -I./src/lexer -I./src/analysis -I./src/lsp -I./src/diagnostics ^
  -I./std/third-party/tre/include

@@ -164,8 +164,6 @@ void check_var_decl(TypeChecker *tc, ASTNode *node, int depth)
     }
 }
 
-int block_always_returns(ASTNode *block);
-
 int stmt_always_returns(ASTNode *stmt)
 {
     if (!stmt)
@@ -639,6 +637,7 @@ void check_loop_passes(TypeChecker *tc, ASTNode *node, int depth)
                                     "Condition must be a truthy type", hints);
             }
         }
+        break;
     default:
         break;
     }

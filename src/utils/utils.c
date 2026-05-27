@@ -10,11 +10,6 @@
 // ** Arena Implementation **
 #define ARENA_BLOCK_SIZE (1024 * 1024)
 
-ZEN_MAYBE_UNUSED static void arena_init(zarena *a)
-{
-    zarena_init(a);
-}
-
 void arena_reset(zarena *a)
 {
     zarena_reset(a);
@@ -82,7 +77,7 @@ void *xrealloc(void *ptr, size_t new_size)
     }
 
     // Header is XMALLOC_HDR_SIZE bytes before the returned pointer
-    size_t *header = (size_t *)((char *)ptr - XMALLOC_HDR_SIZE);
+    size_t *header = (size_t *)(void *)((char *)ptr - XMALLOC_HDR_SIZE);
     size_t old_size = header[0];
 
     if (new_size <= old_size)

@@ -15,8 +15,6 @@
 #include "zprep_plugin.h"
 #include "analysis/move_check.h"
 
-ASTNode *parse_expect(ParserContext *ctx, Lexer *l);
-
 static void check_assignment_condition(ASTNode *cond)
 {
     if (!cond)

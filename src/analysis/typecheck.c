@@ -12,21 +12,9 @@
 #include <string.h>
 
 // External helpers from parser
-char *resolve_struct_name_from_type(ParserContext *ctx, Type *t, int *is_ptr_out,
-                                    char **allocated_out);
-FuncSig *find_func(ParserContext *ctx, const char *name);
-ASTNode *find_trait_def(ParserContext *ctx, const char *name);
-Type *type_from_string_helper(const char *c);
-Type *resolve_alias(Type *t);
-int integer_type_width(Type *t);
-char *merge_underscores(const char *in);
-int eval_const_int_expr(ASTNode *node, ParserContext *ctx, long long *out_val);
-int tc_expr_has_side_effects(ASTNode *node);
-int is_expression_invariant(TypeChecker *tc, ASTNode *node, int *val);
 
 // ** Internal Helpers **
 
-void check_node(TypeChecker *tc, ASTNode *node, int depth);
 void check_node(TypeChecker *tc, ASTNode *node, int depth)
 {
     if (!node || !tc)

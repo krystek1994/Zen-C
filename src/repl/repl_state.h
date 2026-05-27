@@ -26,7 +26,6 @@
 #include "constants.h"
 
 /* Forward declaration */
-ASTNode *parse_program(ParserContext *ctx, Lexer *l);
 
 #define REPL_MAX_WATCHES 16
 #define REPL_MAX_SYMBOLS 512
@@ -100,7 +99,6 @@ void repl_update_symbols(ReplState *state);
 void repl_extract_c_code(const char *filename);
 char *repl_generate_plot_code(const char *expr);
 char *repl_transpile(const char *zen_c_code);
-int repl_jit_execute(const char *c_code, CompilerConfig *cfg);
 
 int repl_dispatch_command(ReplState *state, const char *cmd_buf);
 void repl_print_help(void);

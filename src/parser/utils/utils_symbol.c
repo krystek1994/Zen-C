@@ -214,20 +214,6 @@ void register_deprecated_func(ParserContext *ctx, const char *name, const char *
     ctx->deprecated_funcs = d;
 }
 
-ZEN_MAYBE_UNUSED static DeprecatedFunc *find_deprecated_func(ParserContext *ctx, const char *name)
-{
-    DeprecatedFunc *d = ctx->deprecated_funcs;
-    while (d)
-    {
-        if (strcmp(d->name, name) == 0)
-        {
-            return d;
-        }
-        d = d->next;
-    }
-    return NULL;
-}
-
 GenericFuncTemplate *find_func_template(ParserContext *ctx, const char *name)
 {
     GenericFuncTemplate *t = ctx->func_templates;

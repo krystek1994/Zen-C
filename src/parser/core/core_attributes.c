@@ -12,8 +12,6 @@
 #include "utils/utils.h"
 #include "ast/primitives.h"
 
-ASTNode *generate_derive_impls(ParserContext *ctx, ASTNode *strct, char **traits, int count);
-
 DeclarationAttributes parse_attributes(ParserContext *ctx, Lexer *l)
 {
     (void)ctx;

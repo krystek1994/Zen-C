@@ -7,16 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void lsp_check_file(const char *uri, const char *src, int id);
-void lsp_goto_definition(const char *uri, int line, int col, int id);
-void lsp_hover(const char *uri, int line, int col, int id);
-void lsp_completion(const char *uri, int line, int col, int id);
-void lsp_document_symbol(const char *uri, int id);
-void lsp_references(const char *uri, int line, int col, int id);
 // Prototype
-void lsp_signature_help(const char *uri, int line, int col, int id);
-void lsp_rename(const char *uri, int line, int col, const char *new_name, int id);
-void lsp_code_action(const char *uri, cJSON *diagnostics, int id);
 
 // Helper to extract textDocument params
 static void get_params(cJSON *root, char **uri, int *line, int *col)

@@ -43,7 +43,6 @@ Type *get_field_type(ParserContext *ctx, Type *struct_type, const char *field_na
 const char *get_operator_method(const char *op);
 
 // From expr_prec.c references
-Precedence get_token_precedence(Token t);
 void validate_named_arguments(Token call_token, const char *func_name, char **arg_names,
                               int args_provided, ASTNode *def);
 
@@ -51,6 +50,5 @@ ASTNode *parse_lambda(ParserContext *ctx, Lexer *l);
 ASTNode *parse_arrow_lambda_single(ParserContext *ctx, Lexer *l, char *param_name, int is_async);
 ASTNode *parse_arrow_lambda_multi(ParserContext *ctx, Lexer *l, char **param_names,
                                   Type **param_types, int count, int is_async);
-ASTNode *parse_tuple_expression(ParserContext *ctx, Lexer *l, const char *type_name, ASTNode *expr);
 
 #endif

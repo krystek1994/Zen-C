@@ -12,11 +12,6 @@
 #include "utils/utils.h"
 #include "ast/primitives.h"
 
-void auto_import_std_mem(ParserContext *ctx);
-void mangle_method_name(char *out, size_t out_sz, const char *struct_name, const char *trait_name,
-                        const char *method_name);
-void patch_and_fix_self(ParserContext *ctx, ASTNode *f, const char *full_struct_name);
-
 ASTNode *parse_trait(ParserContext *ctx, Lexer *l)
 {
     lexer_next(l); // eat trait

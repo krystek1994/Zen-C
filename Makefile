@@ -54,26 +54,20 @@ CONSTEXPR_SUPPORTED := $(shell echo "constexpr int x = 42; int main(void){return
 ifneq ($(CONSTEXPR_SUPPORTED),)
 DEFINES += -DHAS_CONSTEXPR
 endif
-CFLAGS = -std=$(C_STD) -g -Wall -Wextra -Wshadow -Wformat=2 -Wmissing-prototypes -Wstrict-prototypes -Wnull-dereference -Wundef -Wfloat-equal -Wmissing-field-initializers -Wsign-compare -Wtype-limits -Wuninitialized -Wdouble-promotion -Wtautological-compare -Wshift-negative-value -Wdangling-else -Wreturn-local-addr -Wconversion -Wno-float-conversion -Wswitch-default -Wvla -fstack-protector-strong $(DEPFLAGS) $(TCC_EXTRA) $(if $(filter 1,$(WERROR)),-Werror -Wno-error=sign-conversion,) -I./src -I./src/ast -I./src/parser -I./src/codegen -I./plugins -I./src/zen -I./src/utils -I./src/lexer -I./src/analysis -I./src/lsp -I./src/diagnostics -I./std/third-party/tre/include $(DEFINES)
-
-
-
-
+CFLAGS = -std=$(C_STD) -g -Wall -Wextra -Wshadow -Wformat=2 -Wmissing-prototypes -Wstrict-prototypes -Wnull-dereference -Wundef -Wfloat-equal -Wmissing-field-initializers -Wsign-compare -Wtype-limits -Wuninitialized -Wdouble-promotion -Wtautological-compare -Wshift-negative-value -Wdangling-else -Wreturn-local-addr -Wconversion -Wno-float-conversion -Wswitch-default -Wvla -Wimplicit-fallthrough -Wredundant-decls -Wcast-align -Wpacked -Wdisabled-optimization -fstack-protector-strong $(DEPFLAGS) $(TCC_EXTRA) $(if $(filter 1,$(WERROR)),-Werror -Wno-error=sign-conversion,) -I./src -I./src/ast -I./src/parser -I./src/codegen -I./plugins -I./src/zen -I./src/utils -I./src/lexer -I./src/analysis -I./src/lsp -I./src/diagnostics -I./std/third-party/tre/include $(DEFINES)
 
 # 145 of 191 TRE warnings were fixed directly in source. The remaining 46 come from macro
 # expansions (ALIGN, IS_WORD_CHAR) and explicit sign-conversion casts in vendored code.
-obj/std/third-party/tre/%.o: CFLAGS += -Wno-sign-conversion -Wno-switch-default
+obj/std/third-party/tre/%.o: CFLAGS += -Wno-sign-conversion -Wno-switch-default -Wno-cast-align -Wno-implicit-fallthrough -Wno-redundant-decls
 
-# GCC-specific warnings (Clang does not support these)
-ifneq ($(findstring clang,$(CC)),clang)
-CFLAGS += -Wduplicated-cond -Wlogical-op -Wformat-signedness
-endif
+# Detect Clang by macro (works even when CC=cc on macOS, or CC=clang on Linux)
+CC_IS_CLANG := $(shell echo 'int x = __clang__;' | $(CC) -x c - -c -o /dev/null 2>/dev/null && echo 1 || echo 0)
 
-# Clang-specific warnings
-ifeq ($(findstring clang,$(CC)),clang)
-# -Wformat=2 includes -Wformat-nonliteral which is noisy with emitter code
-CFLAGS += -Wformat -Wno-format-nonliteral
-CFLAGS += -Wassign-enum -Wcomma -Wsometimes-uninitialized -Wloop-analysis -Wsizeof-array-div
+# Clang's -Wformat=2 includes -Wformat-nonliteral which is noisy with emitter code
+ifeq ($(CC_IS_CLANG),1)
+CFLAGS += -Wno-format-nonliteral -Wassign-enum -Wcomma -Wsometimes-uninitialized -Wloop-analysis -Wsizeof-array-div
+else
+CFLAGS += -Wduplicated-cond -Wlogical-op -Wformat-signedness -Wunsafe-loop-optimizations -Wsuggest-attribute=noreturn -Wsuggest-attribute=const
 endif
 
 # Toggle plugins
@@ -649,7 +643,7 @@ test-fuzz-regression: $(FUZZ_HARNESS) $(FUZZ_CRASH_FILES)
 	fi
 
 $(FUZZ_HARNESS): fuzz/harness.c $(OBJS)
-	$(CC) $(CFLAGS) -D__AFL_HAVE_MANUAL_CONTROL -Wno-switch-default -Wno-sign-conversion $(filter-out src/main.c,$(SRCS)) fuzz/harness.c -o $@ $(LIBS)
+	$(CC) $(CFLAGS) -D__AFL_HAVE_MANUAL_CONTROL -Wno-switch-default -Wno-sign-conversion -Wno-redundant-decls $(filter-out src/main.c,$(SRCS)) fuzz/harness.c -o $@ $(LIBS)
 
 fuzz-clean:
 	rm -rf $(FUZZ_OUT)/*

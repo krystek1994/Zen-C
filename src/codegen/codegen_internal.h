@@ -72,12 +72,9 @@ void handle_block(ParserContext *ctx, ASTNode *node);
 void handle_reflection(ParserContext *ctx, ASTNode *node);
 
 // From codegen_stmt_match.c
-bool is_int_type(TypeKind k);
 
 // From codegen.c
 extern int g_emitting_callee;
 
-bool is_int_type(TypeKind kind);
-void codegen_match_internal(ParserContext *ctx, ASTNode *node, int is_expr);
 const char *get_missing_function_hint(ParserContext *ctx, const char *name);
 #endif

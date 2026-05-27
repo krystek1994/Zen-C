@@ -4,14 +4,6 @@
 #include "../parser/parser.h"
 #include <string.h>
 
-extern void codegen_register_astdump_backend(void);
-extern void codegen_register_cpp_backend(void);
-extern void codegen_register_cuda_backend(void);
-extern void codegen_register_objc_backend(void);
-extern void codegen_register_json_backend(void);
-extern void codegen_register_lisp_backend(void);
-extern void codegen_register_dot_backend(void);
-
 #define MAX_BACKENDS 12
 
 static const CodegenBackend *registered_backends[MAX_BACKENDS];

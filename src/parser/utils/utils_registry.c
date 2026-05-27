@@ -324,22 +324,6 @@ void register_tuple_with_types(ParserContext *ctx, const char *sig, const char *
     register_struct_def(ctx, struct_name, s_def);
 }
 
-ZEN_MAYBE_UNUSED static void register_tuple(ParserContext *ctx, const char *sig)
-{
-    char *s = xstrdup(sig);
-    char *parts[256];
-    int count = 0;
-    char *save = NULL;
-    char *tok = strtok_r(s, "__", &save);
-    while (tok && count < 256)
-    {
-        parts[count++] = tok;
-        tok = strtok_r(NULL, "__", &save);
-    }
-    register_tuple_with_types(ctx, sig, (const char **)parts, count);
-    zfree(s);
-}
-
 void register_struct_def(ParserContext *ctx, const char *name, ASTNode *node)
 {
     if (ctx->config->mode_lsp)
@@ -620,21 +604,6 @@ Module *find_module(ParserContext *ctx, const char *alias)
 {
     Module **mod_ptr = zmap_get(&ctx->imports.modules, alias);
     return mod_ptr ? *mod_ptr : NULL;
-}
-
-ZEN_MAYBE_UNUSED static void register_module(ParserContext *ctx, const char *alias,
-                                             const char *path, int is_re_export)
-{
-    if (zmap_get(&ctx->imports.modules, alias))
-    {
-        return;
-    }
-    Module *m = xmalloc(sizeof(Module));
-    m->alias = alias ? xstrdup(alias) : NULL;
-    m->path = xstrdup(path);
-    m->base_name = extract_module_name(path);
-    m->is_re_export = is_re_export;
-    zmap_put(&ctx->imports.modules, alias, m);
 }
 
 void register_selective_import(ParserContext *ctx, const char *symbol, const char *alias,

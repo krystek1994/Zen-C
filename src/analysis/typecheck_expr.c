@@ -2,12 +2,6 @@
 #include "typecheck_internal.h"
 #include "../utils/utils.h"
 
-void check_expr_lambda(TypeChecker *tc, ASTNode *node, int depth);
-void apply_implicit_struct_pointer_conversions(TypeChecker *tc, ASTNode **expr_ptr,
-                                               Type *expected_type);
-int check_type_compatibility(TypeChecker *tc, Type *target, Type *value, Token t,
-                             ASTNode *value_node, int is_call_arg);
-
 void check_move_for_rvalue(TypeChecker *tc, ASTNode *rvalue)
 {
     if (!rvalue || !rvalue->type_info)

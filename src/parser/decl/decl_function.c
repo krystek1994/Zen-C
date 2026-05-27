@@ -12,8 +12,6 @@
 #include "utils/utils.h"
 #include "ast/primitives.h"
 
-void replace_it_with_var(ASTNode *node, char *var_name);
-
 ASTNode *parse_function(ParserContext *ctx, Lexer *l, int is_async, int is_extern,
                         const char *link_name, int is_export)
 {
@@ -141,7 +139,6 @@ ASTNode *parse_function(ParserContext *ctx, Lexer *l, int is_async, int is_exter
         return NULL;
     }
 
-    extern char *curr_func_ret;
     curr_func_ret = ret;
 
     // Auto-prefix function name if in module context

@@ -16,7 +16,6 @@ char *unmangle_ptr_suffix(const char *s);
 Type *replace_type_formal(Type *t, const char *p, const char *c, const char *os, const char *ns);
 ASTNode *copy_ast_replacing(ASTNode *n, const char *p, const char *c, const char *os,
                             const char *ns);
-char *sanitize_mangled_name(const char *s);
 
 // Helper function to recursively scan AST for sizeof types AND generic calls to trigger
 // instantiation
@@ -567,134 +566,6 @@ char *instantiate_function_template(ParserContext *ctx, const char *name, const 
     return mangled;
 }
 
-ZEN_MAYBE_UNUSED static char *process_fstring(ParserContext *ctx, const char *content,
-                                              char ***used_syms, int *count)
-{
-    (void)used_syms;
-    (void)count;
-    char *gen = xmalloc(8192); // Increased buffer size
-
-    strcpy(gen, "({ static char _b[4096]; _b[0]=0; char _t[1024]; ");
-
-    char *s = xstrdup(content);
-    char *cur = s;
-
-    while (*cur)
-    {
-        char *brace = cur;
-        while (*brace && *brace != '{')
-        {
-            brace++;
-        }
-
-        if (brace > cur)
-        {
-            char tmp = *brace;
-            *brace = 0;
-            strcat(gen, "strcat(_b, \"");
-            strcat(gen, cur);
-            strcat(gen, "\"); ");
-            *brace = tmp;
-        }
-
-        if (*brace == 0)
-        {
-            break;
-        }
-
-        char *p = brace + 1;
-        char *colon = NULL;
-        int depth = 1;
-
-        while (*p && depth > 0)
-        {
-            if (*p == '{')
-            {
-                depth++;
-            }
-            if (*p == '}')
-            {
-                depth--;
-            }
-            if (depth == 1 && *p == ':' && !colon)
-            {
-                colon = p;
-            }
-            if (depth == 0)
-            {
-                break;
-            }
-            p++;
-        }
-
-        *p = 0;
-        char *expr_str = brace + 1;
-        char *fmt = NULL;
-        if (colon)
-        {
-            *colon = 0;
-            fmt = colon + 1;
-        }
-
-        // Parse expression fully to handle default arguments etc.
-        Lexer expr_lex;
-        lexer_init(&expr_lex, expr_str, ctx->config, ctx->current_filename);
-        ASTNode *expr_node = parse_expression(ctx, &expr_lex);
-
-        // Codegen expression to temporary buffer
-        char *code_buffer = format_expression_as_c(ctx, expr_node);
-
-        if (fmt)
-        {
-            strcat(gen, "sprintf(_t, \"%"); /* TODO: check buffer size */
-            strcat(gen, fmt);
-            strcat(gen, "\", ");
-            if (code_buffer)
-            {
-                strcat(gen, code_buffer);
-            }
-            else
-            {
-                strcat(gen, expr_str); // Fallback
-            }
-            strcat(gen, "); strcat(_b, _t); ");
-        }
-        else
-        {
-            strcat(gen, "sprintf(_t, _z_str("); /* TODO: check buffer size */
-            if (code_buffer)
-            {
-                strcat(gen, code_buffer);
-            }
-            else
-            {
-                strcat(gen, expr_str);
-            }
-            strcat(gen, "), ");
-            if (code_buffer)
-            {
-                strcat(gen, code_buffer);
-            }
-            else
-            {
-                strcat(gen, expr_str);
-            }
-            strcat(gen, "); strcat(_b, _t); ");
-        }
-
-        if (code_buffer)
-        {
-            zfree(code_buffer);
-        }
-
-        cur = p + 1;
-    }
-
-    strcat(gen, "_b; })");
-    zfree(s);
-    return gen;
-}
-
 void register_template(ParserContext *ctx, const char *name, ASTNode *node)
 {
     GenericTemplate *t = xcalloc(1, sizeof(GenericTemplate));
@@ -704,8 +575,8 @@ void register_template(ParserContext *ctx, const char *name, ASTNode *node)
     ctx->templates = t;
 }
 
-ZEN_MAYBE_UNUSED static ASTNode *copy_fields_replacing(ParserContext *ctx, ASTNode *fields,
-                                                       const char *param, const char *concrete)
+static ASTNode *copy_fields_replacing(ParserContext *ctx, ASTNode *fields, const char *param,
+                                      const char *concrete)
 {
     if (!fields)
     {
