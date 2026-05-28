@@ -27,7 +27,9 @@ int lsp_main(int argc, char **argv)
     // errors in Neovim's RPC client.
     if (!verbose)
     {
-        (void)freopen("/dev/null", "w", stderr);
+        if (!freopen("/dev/null", "w", stderr))
+        {
+        }
     }
 
     g_config.mode_lsp = 1;
